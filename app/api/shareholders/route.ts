@@ -25,6 +25,7 @@ export async function GET(request: NextRequest) {
         fifh.latest_holding as fund_total_holding,
         fifh.previous_holding as fund_previous_total_holding,
         case
+          when esr.total_holding = 0 or esr.total_holding is null then null
           when fifh.latest_holding / esr.total_holding > 1 then 1
           else fifh.latest_holding / esr.total_holding
         end as holding_percentage,

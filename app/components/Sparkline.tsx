@@ -14,7 +14,7 @@ export default function Sparkline({ data, color = '#24a9a7', label }: Props) {
   const [showModal, setShowModal] = useState(false);
 
   if (!data || data.length < 2) {
-    return <span className="text-xs text-gray-300">—</span>;
+    return <span className="text-xs" style={{ color: 'var(--text-faint)' }}>—</span>;
   }
 
   const latest = data[data.length - 1]?.value ?? 0;
@@ -43,10 +43,10 @@ export default function Sparkline({ data, color = '#24a9a7', label }: Props) {
 
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowModal(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-lg" onClick={e => e.stopPropagation()}>
+          <div className="rounded-2xl shadow-2xl p-6 w-full max-w-lg" style={{ background: 'var(--bg-surface)' }} onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <span className="font-semibold text-gray-700">{label || 'Holdings Over Time'}</span>
-              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600">
+              <span className="font-semibold" style={{ color: 'var(--text-secondary)' }}>{label || 'Holdings Over Time'}</span>
+              <button onClick={() => setShowModal(false)} style={{ color: 'var(--text-muted)' }}>
                 <X className="w-5 h-5" />
               </button>
             </div>

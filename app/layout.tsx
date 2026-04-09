@@ -15,8 +15,8 @@ const robotoMono = Roboto_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Shareholder Registry Analysis",
-  description: "Analyse shareholder registries, peer comparison, and AI-powered insights",
+  title: "Shareholder Registry v2.0",
+  description: "Shareholder Registry v2.0 — peer comparison and AI-powered insights",
   icons: {
     icon: "https://sk-assets.s3.amazonaws.com/online-branding-manual/01-logotypes/curation-compass-box-full-colour-1000px.png",
   },

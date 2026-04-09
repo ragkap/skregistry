@@ -26,12 +26,13 @@ interface Props {
   baseEntity: Entity;
   activeEntityId: number;
   onSelect: (entity: Entity) => void;
+  onPeersLoaded?: (peers: Peer[]) => void;
 }
 
 // Colour palette for peer cards (cycles through)
 const ACCENTS = ['#24a9a7','#6366f1','#f59e0b','#10b981','#ef4444','#8b5cf6','#ec4899','#0ea5e9','#84cc16'];
 
-export default function PeersBar({ baseEntity, activeEntityId, onSelect }: Props) {
+export default function PeersBar({ baseEntity, activeEntityId, onSelect, onPeersLoaded }: Props) {
   const [peers, setPeers] = useState<Peer[]>([]);
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -42,10 +43,14 @@ export default function PeersBar({ baseEntity, activeEntityId, onSelect }: Props
     setLoading(true);
     fetch(`/api/peers?slug=${encodeURIComponent(slug)}`)
       .then(r => r.json())
-      .then(data => setPeers(Array.isArray(data) ? data.slice(0, 12) : []))
+      .then(data => {
+        const list = Array.isArray(data) ? data.slice(0, 12) : [];
+        setPeers(list);
+        onPeersLoaded?.(list);
+      })
       .catch(() => setPeers([]))
       .finally(() => setLoading(false));
-  }, [slug]);
+  }, [slug]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const allEntities: Entity[] = [baseEntity, ...peers.map(p => ({
     id: p.id,
@@ -58,15 +63,15 @@ export default function PeersBar({ baseEntity, activeEntityId, onSelect }: Props
   }))];
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-      <div className="px-4 py-2 border-b border-gray-100 flex items-center gap-3">
-        <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Peers Comparison</span>
+    <div className="rounded-xl shadow-sm overflow-hidden" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
+      <div className="px-4 py-2 flex items-center gap-3" style={{ borderBottom: '1px solid var(--border)' }}>
+        <span className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Peers Comparison</span>
         {loading && <div className="w-3 h-3 border-2 border-[#24a9a7] border-t-transparent rounded-full animate-spin" />}
       </div>
 
       <div
         ref={scrollRef}
-        className="flex gap-3 px-4 py-3 overflow-x-auto scrollbar-thin"
+        className="flex gap-3 px-4 py-3 overflow-x-auto"
         style={{ scrollbarWidth: 'none' }}
       >
         {allEntities.map((e, i) => {
@@ -80,29 +85,29 @@ export default function PeersBar({ baseEntity, activeEntityId, onSelect }: Props
             <button
               key={e.id}
               onClick={() => onSelect(e)}
-              className={`flex-shrink-0 w-44 text-left rounded-lg border-2 px-3 pt-2.5 pb-2 transition-all group ${
-                isActive
-                  ? 'border-[#24a9a7] bg-[#24a9a7]/5 shadow-sm'
-                  : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm'
-              }`}
+              className="flex-shrink-0 w-44 text-left rounded-lg px-3 pt-2.5 pb-2 transition-all"
+              style={{
+                border: `2px solid ${isActive ? 'var(--accent)' : 'var(--border)'}`,
+                background: isActive ? 'var(--accent-bg)' : 'var(--bg-surface)',
+              }}
             >
               <div className="flex items-start justify-between mb-1">
-                <span className={`text-[13px] font-bold tracking-tight leading-tight ${isActive ? 'text-[#24a9a7]' : 'text-gray-800'}`}>
+                <span className="text-[13px] font-bold tracking-tight leading-tight" style={{ color: isActive ? 'var(--accent)' : 'var(--text-primary)' }}>
                   {ticker}
                 </span>
                 {isBase && (
-                  <span className="text-[9px] font-semibold bg-[#24a9a7]/10 text-[#24a9a7] px-1.5 py-0.5 rounded-full ml-1">YOU</span>
+                  <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full ml-1" style={{ background: 'var(--accent-bg)', color: 'var(--accent)' }}>YOU</span>
                 )}
               </div>
-              <p className="text-[11px] text-gray-500 leading-tight truncate mb-2">{name}</p>
+              <p className="text-[11px] leading-tight truncate mb-2" style={{ color: 'var(--text-muted)' }}>{name}</p>
               {/* Accent bar */}
-              <div className="h-0.5 rounded-full w-8" style={{ backgroundColor: isActive ? '#24a9a7' : accent, opacity: isActive ? 1 : 0.4 }} />
+              <div className="h-0.5 rounded-full w-8" style={{ backgroundColor: isActive ? 'var(--accent)' : accent, opacity: isActive ? 1 : 0.4 }} />
             </button>
           );
         })}
 
         {loading && Array.from({ length: 3 }).map((_, i) => (
-          <div key={`skel-${i}`} className="flex-shrink-0 w-44 h-20 rounded-lg border-2 border-gray-100 bg-gray-50 animate-pulse" />
+          <div key={`skel-${i}`} className="flex-shrink-0 w-44 h-20 rounded-lg animate-pulse" style={{ border: '2px solid var(--border)', background: 'var(--bg-muted)' }} />
         ))}
       </div>
     </div>
