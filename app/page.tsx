@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect, useRef, Suspense } from 'react';
+import { useState, useCallback, useEffect, useRef, Suspense, startTransition } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import EntitySearch from './components/EntitySearch';
 import SummaryCards from './components/SummaryCards';
@@ -183,7 +183,7 @@ function PageContent() {
       if (!res.ok) throw new Error('Failed to load data');
       const data = await res.json();
       if (data.error) throw new Error(data.error);
-      setRows(Array.isArray(data) ? data : []);
+      startTransition(() => setRows(Array.isArray(data) ? data : []));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
@@ -209,20 +209,29 @@ function PageContent() {
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg-base)' }}>
       {/* Top nav — logo + search only */}
-      <header className="sticky top-0 z-40 shadow-sm" style={{ background: 'var(--bg-surface)', borderBottom: '1px solid var(--border)' }}>
-        <div className="w-full px-6 py-3 flex items-center gap-4 mx-auto" style={{ maxWidth: 1232 }}>
-          <div className="flex items-center gap-3 flex-shrink-0">
+      <header className="sticky top-0 z-40" style={{ background: 'var(--bg-surface)', borderBottom: '1px solid var(--border)' }}>
+        <div className="w-full px-4 sm:px-6 py-3 flex items-center gap-3 sm:gap-4 mx-auto" style={{ maxWidth: 1232 }}>
+          <button
+            className="flex items-center gap-2 flex-shrink-0 hover:opacity-80 transition-opacity"
+            onClick={() => {
+              setBaseEntity(null);
+              setActiveEntity(null);
+              setRows([]);
+              setPeers([]);
+              router.replace('/', { scroll: false });
+            }}
+          >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="https://sk-assets.s3.amazonaws.com/online-branding-manual/01-logotypes/curation-compass-box-full-colour-1000px.png"
               alt="SK"
-              className="w-9 h-9 rounded-lg object-contain"
+              className="w-8 h-8 rounded-lg object-contain"
             />
-            <div>
+            <div className="text-left hidden sm:block">
               <h1 className="text-sm font-bold leading-tight tracking-tight" style={{ color: 'var(--text-primary)' }}>Shareholder Registry</h1>
               <p className="text-[10px] tracking-wide uppercase" style={{ color: 'var(--text-faint)' }}>v2.0</p>
             </div>
-          </div>
+          </button>
 
           <div className="flex-1 flex justify-center">
             <EntitySearch onSelect={handleEntitySelect} selected={baseEntity} />
@@ -235,7 +244,7 @@ function PageContent() {
 
       </header>
 
-      <main className="w-full px-6 py-5 mx-auto" style={{ maxWidth: 1232 }}>
+      <main className="w-full px-4 sm:px-6 py-4 sm:py-5 mx-auto" style={{ maxWidth: 1232 }}>
         {!baseEntity ? (
           <div className="flex flex-col items-center justify-center py-32 text-center">
             <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4" style={{ background: 'var(--accent-bg)' }}>
@@ -251,7 +260,7 @@ function PageContent() {
           <div className="space-y-4">
             {/* Entity info bar + AI CTA */}
             {displayEntity && (
-              <div className="flex items-center justify-between gap-4 px-4 py-2.5 rounded-xl" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
+              <div className="flex items-center justify-between gap-2 sm:gap-4 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
                 <div className="flex items-center gap-3 min-w-0">
                   <span className="font-semibold text-sm truncate" style={{ color: 'var(--text-primary)' }}>{displayEntity.pretty_name}</span>
                   {displayEntity.bloomberg_ticker && (
@@ -276,10 +285,10 @@ function PageContent() {
                 <button
                   onClick={handleGenerate}
                   disabled={summarizing || rows.length === 0}
-                  className="ai-pulse flex-shrink-0 flex items-center gap-2 px-5 py-2 bg-[#24a9a7] text-white rounded-full font-semibold text-xs hover:bg-[#1d9896] active:bg-[#178a88] transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
+                  className="ai-pulse flex-shrink-0 flex items-center gap-2 px-3 sm:px-5 py-2 bg-[#24a9a7] text-white rounded-full font-semibold text-xs hover:bg-[#1d9896] active:bg-[#178a88] transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
-                  {summarizing ? 'Generating…' : 'Generate AI Summary'}
+                  <span className="hidden sm:inline">{summarizing ? 'Generating…' : 'Generate AI Summary'}</span>
                 </button>
               </div>
             )}

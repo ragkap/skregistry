@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useTransition, useDeferredValue } from 'react';
 import { ArrowUp, ArrowDown, ExternalLink } from 'lucide-react';
 import Sparkline from './Sparkline';
 import PersonDrawer from './PersonDrawer';
@@ -57,13 +57,15 @@ function SortIcon({ col, cur, dir }: { col: SortKey; cur: SortKey; dir: SortDir 
 
 export default function ShareholderTable({ rows }: { rows: Row[] }) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
-  const [sortKey, setSortKey] = useState<SortKey>('pct');
+  const [sortKey, setSortKey] = useState<SortKey>('total');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [drawer, setDrawer] = useState<{ fundName: string; names: string[]; urls: string[] } | null>(null);
+  const [, startTransition] = useTransition();
+  const deferredRows = useDeferredValue(rows);
 
   const groups = useMemo<InstitutionGroup[]>(() => {
     const map = new Map<string, InstitutionGroup>();
-    for (const r of rows) {
+    for (const r of deferredRows) {
       const key = r.factset_entity_id || r.insti_name;
       if (!map.has(key)) map.set(key, { id: key, name: r.insti_name, url: r.insti_url, totalHolding: 0, prevHolding: 0, holdingPct: 0, change: 0, latestDate: r.report_date || '', funds: [] });
       const g = map.get(key)!;
@@ -96,8 +98,10 @@ export default function ShareholderTable({ rows }: { rows: Row[] }) {
   }), [groups, sortKey, sortDir]);
 
   const handleSort = (key: SortKey) => {
-    if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
-    else { setSortKey(key); setSortDir('desc'); }
+    startTransition(() => {
+      if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+      else { setSortKey(key); setSortDir('desc'); }
+    });
   };
 
   const toggleExpand = (id: string) => {

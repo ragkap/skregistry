@@ -4,6 +4,7 @@ import pool from '@/lib/db';
 export async function GET(request: NextRequest) {
   const entityId = request.nextUrl.searchParams.get('entityId');
   if (!entityId) return NextResponse.json({ error: 'entityId required' }, { status: 400 });
+  const limit = Math.min(parseInt(request.nextUrl.searchParams.get('limit') || '500'), 1000);
 
   const query = `
     with entity_fsym as (
@@ -42,7 +43,8 @@ export async function GET(request: NextRequest) {
         and esr.fsym_id = (select fsym_id from entity_fsym)
       where fifh.fsym_id = (select fsym_id from entity_fsym)
       group by 1,2,3,4,5,6,7,8,9,10,11
-      order by esr.total_holding desc
+      order by esr.total_holding desc, fifh.latest_holding desc
+      limit $2
     )
     select
       insti_name, insti_url, fund_name, fund_url,
@@ -53,8 +55,10 @@ export async function GET(request: NextRequest) {
   `;
 
   try {
-    const result = await pool.query(query, [parseInt(entityId)]);
-    return NextResponse.json(result.rows);
+    const result = await pool.query(query, [parseInt(entityId), limit]);
+    return NextResponse.json(result.rows, {
+      headers: { 'Cache-Control': 'public, max-age=300, stale-while-revalidate=600' },
+    });
   } catch (err) {
     console.error('Shareholder query error:', err);
     return NextResponse.json({ error: 'DB error' }, { status: 500 });

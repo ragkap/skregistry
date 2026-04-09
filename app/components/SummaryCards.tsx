@@ -70,16 +70,24 @@ function ExtLink({ href, label }: { href: string; label: string }) {
 function FilterPills({ value, onChange }: { value: FilterType; onChange: (v: FilterType) => void }) {
   return (
     <div className="flex gap-1">
-      {(['institutions', 'funds'] as FilterType[]).map(f => (
-        <button key={f} onClick={() => onChange(f)}
-          className="px-2 py-0.5 rounded-full text-[10px] font-semibold transition-colors"
-          style={value === f
-            ? { background: 'var(--accent)', color: '#fff' }
-            : { background: 'var(--bg-muted)', color: 'var(--text-muted)' }}
-        >
-          {f === 'institutions' ? 'Instis' : 'Funds'}
-        </button>
-      ))}
+      {(['institutions', 'funds'] as FilterType[]).map(f => {
+        const active = value === f;
+        const label = f === 'institutions' ? 'Instis' : 'Funds';
+        return (
+          <button
+            key={f}
+            onClick={() => onChange(f)}
+            className="px-2 py-0.5 rounded-full text-[10px] font-semibold transition-colors"
+            style={active
+              ? { color: 'var(--accent)', background: 'var(--accent-bg)', border: '1.5px solid var(--accent)' }
+              : { color: 'var(--text-muted)', background: 'transparent', border: '1.5px solid var(--border)' }}
+            onMouseEnter={e => { if (!active) { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)'; } }}
+            onMouseLeave={e => { if (!active) { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)'; } }}
+          >
+            {label}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -170,7 +178,7 @@ export default function SummaryCards({ rows }: Props) {
 
       <MiniTable
         icon={<UserPlus className="w-3.5 h-3.5 text-blue-500" />}
-        title="New Shareholders" subtitle="last 6 mo"
+        title="New Holders" subtitle="6mo"
         filter={newFilter} onFilter={setNewFilter}
         headers={['Institution', 'Since']}
         empty="No new holders"
