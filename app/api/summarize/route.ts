@@ -87,19 +87,11 @@ export async function POST(request: NextRequest) {
     }
 
     const entityName = entity?.pretty_name || entity?.short_name || 'the company';
+    const ticker = entity?.bloomberg_ticker || '';
+    const country = entity?.country || 'N/A';
+    const sector = entity?.sector || 'N/A';
 
-    const prompt = `You are a senior Investor Relations analyst. Produce a structured HTML report for ${entityName} (${entity?.bloomberg_ticker || ''}) based on the shareholding data below.
-
-ENTITY: ${entityName} | Sector: ${entity?.sector || 'N/A'} | Country: ${entity?.country || 'N/A'}
-
-TOP 10 INSTITUTIONAL HOLDERS OF ${entityName.toUpperCase()}:
-${JSON.stringify(topInstis, null, 2)}
-
-PEER COMPANIES AND THEIR TOP SHAREHOLDERS:
-${peerData.map(p => `\n${p.entity.pretty_name} (${p.entity.bloomberg_ticker}):\n${JSON.stringify(p.topHolders.slice(0, 8), null, 2)}`).join('\n')}
-
-INSTITUTIONS HOLDING PEERS BUT NOT ${entityName.toUpperCase()}:
-${JSON.stringify(peerOnlyHolders.slice(0, 15), null, 2)}
+    const prompt = `You are a senior Investor Relations analyst at Smartkarma. Produce a structured HTML report based on the shareholding data below.
 
 Return ONLY valid HTML (no markdown, no \`\`\`html fences) using this structure:
 - Use <h3> for section headings
@@ -109,12 +101,29 @@ Return ONLY valid HTML (no markdown, no \`\`\`html fences) using this structure:
 - Use <p> for paragraphs
 - Keep it concise — max 500 words total
 
-Sections to include:
+Start the report with this exact header block:
+<p><strong>Smartkarma Shareholder Registry Analysis — v2.0</strong></p>
+<p><strong>${entityName}</strong>${ticker ? ` &nbsp;·&nbsp; <span style="font-family:monospace">${ticker}</span>` : ''} &nbsp;·&nbsp; ${country} &nbsp;·&nbsp; ${sector}</p>
+
+Then include these sections:
 1. <h3>Ownership Overview</h3> — brief snapshot of ownership concentration and structure
 2. <h3>Notable Changes</h3> — who increased/decreased and what it signals
 3. <h3>Peer Comparison</h3> — which institutions own peers but not ${entityName}, and why that matters
 4. <h3>IR Opportunities</h3> — specific institutions to target, ranked by priority, with rationale
-5. <h3>Recommended Next Steps</h3> — concrete IR actions (roadshows, outreach, messaging)`;
+5. <h3>Recommended Next Steps</h3> — concrete IR actions (roadshows, outreach, messaging)
+
+DATA:
+
+ENTITY: ${entityName} | Ticker: ${ticker} | Sector: ${sector} | Country: ${country}
+
+TOP 10 INSTITUTIONAL HOLDERS OF ${entityName.toUpperCase()}:
+${JSON.stringify(topInstis, null, 2)}
+
+PEER COMPANIES AND THEIR TOP SHAREHOLDERS:
+${peerData.map(p => `\n${p.entity.pretty_name} (${p.entity.bloomberg_ticker}):\n${JSON.stringify(p.topHolders.slice(0, 8), null, 2)}`).join('\n')}
+
+INSTITUTIONS HOLDING PEERS BUT NOT ${entityName.toUpperCase()}:
+${JSON.stringify(peerOnlyHolders.slice(0, 15), null, 2)}`;
 
     const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
     const result = await model.generateContent(prompt);

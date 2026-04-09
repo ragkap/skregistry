@@ -29,7 +29,7 @@ const fmt = (n: number | null | undefined) => {
 };
 const fmtHoldingPct = (n: number | null | undefined) => {
   if (n == null || isNaN(n)) return '—';
-  return `${Number(n).toFixed(4)}%`;
+  return `${Number(n).toFixed(2)}%`;
 };
 
 function ChangeCell({ value }: { value: number | null | undefined }) {
@@ -114,8 +114,8 @@ export default function ShareholderTable({ rows }: { rows: Row[] }) {
       .map(r => ({ date: r.report_date?.slice(0, 10) || '', value: Number(r.fund_total_holding) }))
       .sort((a, b) => a.date.localeCompare(b.date));
 
-  const Th = ({ col, label, right }: { col: SortKey; label: string; right?: boolean }) => (
-    <th className={`sk-th ${right ? 'right' : ''}`} onClick={() => handleSort(col)}>
+  const Th = ({ col, label, right, width }: { col: SortKey; label: string; right?: boolean; width?: number | string }) => (
+    <th className={`sk-th ${right ? 'right' : ''}`} style={width != null ? { width } : undefined} onClick={() => handleSort(col)}>
       {label}<SortIcon col={col} cur={sortKey} dir={sortDir} />
     </th>
   );
@@ -126,18 +126,17 @@ export default function ShareholderTable({ rows }: { rows: Row[] }) {
     <>
       <div className="rounded-xl overflow-hidden shadow-sm" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
         <div className="overflow-x-auto">
-          <table className="sk-table" style={{ minWidth: 860 }}>
+          <table className="sk-table" style={{ minWidth: 720, tableLayout: 'fixed', width: '100%' }}>
             <thead className="sk-thead">
               <tr>
-                {/* expand toggle col */}
-                <th className="sk-th" style={{ width: 40, textAlign: 'center' }} />
-                <Th col="name" label="Institution" />
-                <Th col="date" label="Latest Filing" />
-                <Th col="total" label="Total Holding" right />
-                <Th col="pct" label="% Holding" right />
-                <Th col="prev" label="Prev Holding" right />
-                <Th col="change" label="Change" right />
-                <th className="sk-th">Trend</th>
+                <th className="sk-th" style={{ width: 28, textAlign: 'center' }} />
+                <Th col="name" label="Institution" /> {/* no width → takes all remaining space */}
+                <Th col="date" label="Filed" width={96} />
+                <Th col="total" label="Holding" right width={116} />
+                <Th col="pct" label="% Hold" right width={100} />
+                <Th col="prev" label="Prev" right width={110} />
+                <Th col="change" label="Chg" right width={90} />
+                <th className="sk-th" style={{ width: 96 }}>Trend</th>
               </tr>
             </thead>
             <tbody>
@@ -153,31 +152,33 @@ export default function ShareholderTable({ rows }: { rows: Row[] }) {
                       className="sk-tr"
                       style={{ background: baseBg, cursor: 'pointer' }}
                       onClick={() => toggleExpand(g.id)}
-                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-muted)')}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
                       onMouseLeave={e => (e.currentTarget.style.background = baseBg)}
                     >
                       {/* +/− indicator */}
-                      <td style={{ textAlign: 'center', padding: 0, width: 40, minWidth: 40 }}>
+                      <td style={{ textAlign: 'center', padding: '0 2px', width: 28 }}>
                         <span style={{
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          minHeight: 44, fontWeight: 700, fontSize: 18, lineHeight: 1,
+                          minHeight: 36, fontWeight: 700, fontSize: 14, lineHeight: 1,
                           color: isOpen ? 'var(--accent)' : 'var(--text-muted)',
                         }}>
                           {isOpen ? '−' : '+'}
                         </span>
                       </td>
-                      <td className="sk-td primary" style={{ paddingTop: 10, paddingBottom: 10 }}>
-                        <a href={g.url} target="_blank" rel="noreferrer"
-                          className="inline-flex items-center gap-1 hover:underline group/link"
-                          style={{ color: 'var(--text-primary)', fontWeight: 600 }}
-                          onClick={e => e.stopPropagation()}
-                        >
-                          {g.name}
-                          <ExternalLink className="w-3 h-3 opacity-0 group-hover/link:opacity-50 transition-opacity flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
-                        </a>
-                        {g.funds.length > 1 && (
-                          <span className="ml-2 text-[10px]" style={{ color: 'var(--text-faint)' }}>{g.funds.length} funds</span>
-                        )}
+                      <td className="sk-td primary" style={{ paddingTop: 10, paddingBottom: 10, maxWidth: 0 }}>
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <a href={g.url} target="_blank" rel="noreferrer"
+                            className="inline-flex items-center gap-1 hover:underline group/link min-w-0"
+                            style={{ color: 'var(--text-primary)', fontWeight: 600 }}
+                            onClick={e => e.stopPropagation()}
+                          >
+                            <span className="truncate">{g.name}</span>
+                            <ExternalLink className="w-3 h-3 opacity-0 group-hover/link:opacity-50 transition-opacity flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
+                          </a>
+                          {g.funds.length > 1 && (
+                            <span className="text-[10px] flex-shrink-0" style={{ color: 'var(--text-faint)' }}>{g.funds.length} funds</span>
+                          )}
+                        </div>
                       </td>
                       <td className="sk-td mono faint" style={{ fontSize: 12 }}>{g.latestDate?.slice(0, 10) || '—'}</td>
                       <td className="sk-td right mono" style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{fmt(g.totalHolding)}</td>
@@ -200,21 +201,21 @@ export default function ShareholderTable({ rows }: { rows: Row[] }) {
                           <tr key={`${g.id}-${fi}`} className="sk-tr"
                             style={{ background: 'var(--bg-muted)', cursor: 'pointer' }}
                             onClick={() => setDrawer({ fundName: f.fund_name, names: f.person_names || [], urls: f.person_urls || [] })}
-                            onMouseEnter={e => (e.currentTarget.style.background = 'var(--border)')}
+                            onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
                             onMouseLeave={e => (e.currentTarget.style.background = 'var(--bg-muted)')}
                           >
-                            <td style={{ width: 40 }} />
+                            <td style={{ width: 28 }} />
                             {/* Fund name — full-height clickable cell */}
-                            <td className="sk-td" style={{ paddingLeft: 32, paddingTop: 10, paddingBottom: 10 }}>
-                              <div className="flex items-center gap-2">
+                            <td className="sk-td" style={{ paddingLeft: 32, paddingTop: 10, paddingBottom: 10, maxWidth: 0 }}>
+                              <div className="flex items-center gap-2 min-w-0">
                                 <span className="text-[10px] font-bold w-4 text-right flex-shrink-0 tabular-nums" style={{ color: 'var(--text-faint)' }}>{fi + 1}</span>
                                 <a href={f.fund_url} target="_blank" rel="noreferrer"
                                   onClick={e => e.stopPropagation()}
-                                  className="inline-flex items-center gap-1 hover:underline group/link"
+                                  className="inline-flex items-center gap-1 hover:underline group/link min-w-0"
                                   style={{ color: 'var(--text-secondary)', fontSize: 12 }}
                                 >
-                                  {f.fund_name}
-                                  <ExternalLink className="w-2.5 h-2.5 opacity-0 group-hover/link:opacity-50 transition-opacity" style={{ color: 'var(--text-muted)' }} />
+                                  <span className="truncate">{f.fund_name}</span>
+                                  <ExternalLink className="w-2.5 h-2.5 opacity-0 group-hover/link:opacity-50 transition-opacity flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
                                 </a>
                               </div>
                             </td>

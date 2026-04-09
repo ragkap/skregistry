@@ -113,6 +113,34 @@ function DarkToggle() {
   );
 }
 
+function exportCSV(rows: ShareholderRow[], entityName: string) {
+  const headers = [
+    'Institution', 'Institution URL', 'Fund', 'Fund URL',
+    'Report Date', 'Total Holding', 'Prev Holding',
+    '% Holding', 'Change %', 'Fund Managers',
+  ];
+  const escape = (v: string | number | null | undefined) => {
+    const s = v == null ? '' : String(v);
+    return s.includes(',') || s.includes('"') || s.includes('\n')
+      ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const csvRows = rows.map(r => [
+    r.insti_name, r.insti_url, r.fund_name, r.fund_url,
+    r.report_date?.slice(0, 10) || '',
+    r.fund_total_holding, r.fund_previous_total_holding,
+    r.holding_percentage, r.change_in_percentage,
+    (r.person_names || []).filter(Boolean).join('; '),
+  ].map(escape).join(','));
+  const csv = [headers.join(','), ...csvRows].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${entityName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_shareholders.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 function PageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -182,7 +210,7 @@ function PageContent() {
     <div className="min-h-screen" style={{ background: 'var(--bg-base)' }}>
       {/* Top nav — logo + search only */}
       <header className="sticky top-0 z-40 shadow-sm" style={{ background: 'var(--bg-surface)', borderBottom: '1px solid var(--border)' }}>
-        <div className="w-full px-6 py-3 flex items-center gap-4">
+        <div className="w-full px-6 py-3 flex items-center gap-4 mx-auto" style={{ maxWidth: 1232 }}>
           <div className="flex items-center gap-3 flex-shrink-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -205,46 +233,9 @@ function PageContent() {
           </div>
         </div>
 
-        {/* Sub-bar: entity info (LHS) + AI button (RHS) — only when entity selected */}
-        {displayEntity && (
-          <div className="w-full px-6 py-2 flex items-center justify-between gap-4" style={{ borderTop: '1px solid var(--border)', background: 'var(--bg-subtle)' }}>
-            {/* Entity details */}
-            <div className="flex items-center gap-3 min-w-0">
-              <span className="font-semibold text-sm truncate" style={{ color: 'var(--text-primary)' }}>{displayEntity.pretty_name}</span>
-              {displayEntity.bloomberg_ticker && (
-                <span className="text-xs font-mono px-2 py-0.5 rounded-full font-semibold flex-shrink-0" style={{ background: 'var(--accent-bg)', color: 'var(--accent)' }}>
-                  {displayEntity.bloomberg_ticker.split(',')[0].trim()}
-                </span>
-              )}
-              {displayEntity.country && (
-                <span className="hidden sm:flex items-center gap-1 text-xs flex-shrink-0" style={{ color: 'var(--text-muted)' }}>
-                  <MapPin className="w-3 h-3" />{displayEntity.country}
-                </span>
-              )}
-              {displayEntity.sector && (
-                <span className="hidden md:flex items-center gap-1 text-xs flex-shrink-0" style={{ color: 'var(--text-muted)' }}>
-                  <Layers className="w-3 h-3" />{displayEntity.sector}
-                </span>
-              )}
-              {activeEntity && baseEntity && activeEntity.id !== baseEntity.id && (
-                <span className="text-[10px] font-semibold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full flex-shrink-0">PEER</span>
-              )}
-            </div>
-
-            {/* Generate AI Summary — main CTA */}
-            <button
-              onClick={handleGenerate}
-              disabled={summarizing || rows.length === 0}
-              className="ai-pulse flex-shrink-0 flex items-center gap-2 px-5 py-2 bg-[#24a9a7] text-white rounded-full font-semibold text-xs hover:bg-[#1d9896] active:bg-[#178a88] transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              {summarizing ? 'Generating…' : 'Generate AI Summary'}
-            </button>
-          </div>
-        )}
       </header>
 
-      <main className="w-full px-6 py-5">
+      <main className="w-full px-6 py-5 mx-auto" style={{ maxWidth: 1232 }}>
         {!baseEntity ? (
           <div className="flex flex-col items-center justify-center py-32 text-center">
             <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4" style={{ background: 'var(--accent-bg)' }}>
@@ -258,6 +249,41 @@ function PageContent() {
           </div>
         ) : (
           <div className="space-y-4">
+            {/* Entity info bar + AI CTA */}
+            {displayEntity && (
+              <div className="flex items-center justify-between gap-4 px-4 py-2.5 rounded-xl" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="font-semibold text-sm truncate" style={{ color: 'var(--text-primary)' }}>{displayEntity.pretty_name}</span>
+                  {displayEntity.bloomberg_ticker && (
+                    <span className="text-xs font-mono px-2 py-0.5 rounded-full font-semibold flex-shrink-0" style={{ background: 'var(--accent-bg)', color: 'var(--accent)' }}>
+                      {displayEntity.bloomberg_ticker.split(',')[0].trim()}
+                    </span>
+                  )}
+                  {displayEntity.country && (
+                    <span className="hidden sm:flex items-center gap-1 text-xs flex-shrink-0" style={{ color: 'var(--text-muted)' }}>
+                      <MapPin className="w-3 h-3" />{displayEntity.country}
+                    </span>
+                  )}
+                  {displayEntity.sector && (
+                    <span className="hidden md:flex items-center gap-1 text-xs flex-shrink-0" style={{ color: 'var(--text-muted)' }}>
+                      <Layers className="w-3 h-3" />{displayEntity.sector}
+                    </span>
+                  )}
+                  {activeEntity && baseEntity && activeEntity.id !== baseEntity.id && (
+                    <span className="text-[10px] font-semibold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full flex-shrink-0">PEER</span>
+                  )}
+                </div>
+                <button
+                  onClick={handleGenerate}
+                  disabled={summarizing || rows.length === 0}
+                  className="ai-pulse flex-shrink-0 flex items-center gap-2 px-5 py-2 bg-[#24a9a7] text-white rounded-full font-semibold text-xs hover:bg-[#1d9896] active:bg-[#178a88] transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  {summarizing ? 'Generating…' : 'Generate AI Summary'}
+                </button>
+              </div>
+            )}
+
             {/* AI Summary panel — appears at top of content */}
             {open && (
               <div className="rounded-xl shadow-sm overflow-hidden" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderLeft: '3px solid var(--accent)' }}>
@@ -332,10 +358,10 @@ function PageContent() {
                     </h2>
                     <button
                       onClick={() => exportCSV(rows, activeEntity?.pretty_name || 'shareholders')}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors"
-                      style={{ color: 'var(--text-secondary)', background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
-                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-muted)')}
-                      onMouseLeave={e => (e.currentTarget.style.background = 'var(--bg-surface)')}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors"
+                      style={{ color: '#24a9a7', background: 'rgba(36,169,167,0.08)', border: '1.5px solid #24a9a7' }}
+                      onMouseEnter={e => { e.currentTarget.style.background = '#24a9a7'; e.currentTarget.style.color = '#fff'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(36,169,167,0.08)'; e.currentTarget.style.color = '#24a9a7'; }}
                     >
                       <Download className="w-3 h-3" />
                       Export CSV

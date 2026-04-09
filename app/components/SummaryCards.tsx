@@ -58,7 +58,7 @@ const fmtPct = (n: number) => `${n >= 0 ? '+' : ''}${(n * 100).toFixed(1)}%`;
 function ExtLink({ href, label }: { href: string; label: string }) {
   return (
     <a href={href} target="_blank" rel="noreferrer"
-      className="inline-flex items-center gap-1 hover:underline group/link"
+      className="flex items-center gap-1 hover:underline group/link min-w-0"
       style={{ color: 'var(--text-primary)' }}
     >
       <span className="truncate">{label}</span>
@@ -108,7 +108,11 @@ function MiniTable({ icon, title, subtitle, filter, onFilter, headers, rows, emp
         <FilterPills value={filter} onChange={onFilter} />
       </div>
       {/* Table */}
-      <table className="w-full sk-table">
+      <table className="w-full sk-table" style={{ tableLayout: 'fixed' }}>
+        <colgroup>
+          <col /> {/* name — takes remaining space */}
+          <col style={{ width: 100 }} />
+        </colgroup>
         <thead className="sk-thead">
           <tr>
             {headers.map((h, i) => (
@@ -122,7 +126,7 @@ function MiniTable({ icon, title, subtitle, filter, onFilter, headers, rows, emp
           ) : rows.map((cells, i) => (
             <tr key={i} className="sk-tr">
               {cells.map((cell, j) => (
-                <td key={j} className={`sk-td ${j > 0 ? 'right mono' : 'primary'}`} style={{ fontSize: 12 }}>{cell}</td>
+                <td key={j} className={`sk-td ${j > 0 ? 'right mono' : 'primary'}`} style={{ fontSize: 12, ...(j === 0 ? { overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' } : {}) }}>{cell}</td>
               ))}
             </tr>
           ))}

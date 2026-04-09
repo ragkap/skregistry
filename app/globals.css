@@ -15,6 +15,7 @@
   --text-faint:   #94a3b8;
   --accent:       #24a9a7;
   --accent-bg:    rgba(36,169,167,0.08);
+  --bg-hover:     #dde3ec;
 }
 
 .dark {
@@ -30,6 +31,7 @@
   --text-faint:   #555555;
   --accent:       #2ec4c2;
   --accent-bg:    rgba(46,196,194,0.10);
+  --bg-hover:     #2e2e2e;
 }
 
 html, body, * {
@@ -59,7 +61,7 @@ body {
 .sk-th:hover { color: var(--text-secondary); }
 .sk-th.right { text-align: right; }
 .sk-tr { border-bottom: 1px solid var(--border-muted); transition: background 0.1s; }
-.sk-tr:hover { background: var(--bg-muted); }
+.sk-tr:hover { background: var(--bg-hover); }
 .sk-td { padding: 7px 12px; color: var(--text-secondary); }
 .sk-td.right { text-align: right; }
 .sk-td.mono { font-family: var(--font-roboto-mono), monospace; tabular-nums: all; }
