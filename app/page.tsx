@@ -4,8 +4,9 @@ import { useState, useCallback, useEffect, useRef, Suspense, startTransition } f
 import { useRouter, useSearchParams } from 'next/navigation';
 import EntitySearch from './components/EntitySearch';
 import SummaryCards from './components/SummaryCards';
-import ShareholderTable from './components/ShareholderTable';
+import ShareholderTable, { staleCutoff, type StaleFilter } from './components/ShareholderTable';
 import PeersBar from './components/PeersBar';
+import SkeletonLoader from './components/SkeletonLoader';
 import { BarChart3, Sparkles, Copy, Check, X, MapPin, Layers, Sun, Moon, Download } from 'lucide-react';
 
 interface Entity {
@@ -25,34 +26,61 @@ interface Peer {
 }
 
 interface ShareholderRow {
+  factset_entity_id: string;
   insti_name: string;
-  insti_url: string;
-  fund_name: string;
-  fund_url: string;
+  insti_url: string | null;
+  fund_name: string | null;
+  fund_url: string | null;
   report_date: string;
-  fund_total_holding: number;
-  fund_previous_total_holding: number;
+  type: 'Fund' | 'Institution' | 'Insider';
+  total_holding: number;
+  previous_total_holding: number;
   holding_percentage: number;
   change_in_percentage: number;
-  person_names: string[];
-  person_urls: string[];
-  factset_entity_id: string;
-  insti_total_holding: number;
+  person_names: string[] | null;
+  person_urls: string[] | null;
+  person_bios: string[] | null;
+  person_emails: string[] | null;
+  person_phones: string[] | null;
+  person_location_street1: string[] | null;
+  person_location_street2: string[] | null;
+  person_postal: string[] | null;
+  person_countries: string[] | null;
 }
 
 const DISCLAIMER = `<p class="disclaimer">⚠ <em>This content is AI-generated and displayed for general informational purposes only. Please verify independently before use.</em></p>`;
 
-function useAISummary(entity: Entity | null, rows: ShareholderRow[], peers: Peer[]) {
+function useAISummary(entity: Entity | null, rows: ShareholderRow[], peers: Peer[], isViewingPeer: boolean, staleFilter: StaleFilter) {
   const [summarizing, setSummarizing] = useState(false);
   const [summaryHtml, setSummaryHtml] = useState('');
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
 
+  // Refs so handleGenerate always captures the latest values regardless of closure timing
+  const entityRef = useRef(entity);
+  const rowsRef = useRef(rows);
+  const peersRef = useRef(peers);
+  const isViewingPeerRef = useRef(isViewingPeer);
+  const staleFilterRef = useRef(staleFilter);
+  useEffect(() => { entityRef.current = entity; }, [entity]);
+  useEffect(() => { rowsRef.current = rows; }, [rows]);
+  useEffect(() => { peersRef.current = peers; }, [peers]);
+  useEffect(() => { isViewingPeerRef.current = isViewingPeer; }, [isViewingPeer]);
+  useEffect(() => { staleFilterRef.current = staleFilter; }, [staleFilter]);
+
   useEffect(() => { setSummaryHtml(''); setOpen(false); }, [entity?.id]);
 
   const handleGenerate = useCallback(async () => {
-    if (!entity || rows.length === 0) return;
+    const currentEntity = entityRef.current;
+    const cutoff = staleCutoff(staleFilterRef.current);
+    // Apply same stale filter as the table
+    const currentRows = cutoff
+      ? rowsRef.current.filter(r => !r.report_date || r.report_date >= cutoff)
+      : rowsRef.current;
+    // When viewing a peer, don't pass the base entity's peer network — it's wrong context
+    const currentPeers = isViewingPeerRef.current ? [] : peersRef.current;
+    if (!currentEntity || currentRows.length === 0) return;
     setSummarizing(true);
     setSummaryHtml('');
     setOpen(true);
@@ -60,7 +88,7 @@ function useAISummary(entity: Entity | null, rows: ShareholderRow[], peers: Peer
       const res = await fetch('/api/summarize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ entity, shareholders: rows, peerEntities: peers.slice(0, 4) }),
+        body: JSON.stringify({ entity: currentEntity, shareholders: currentRows, peerEntities: currentPeers.slice(0, 4), staleCutoff: cutoff }),
       });
       const data = await res.json();
       const html = data.html || `<p>${data.error || 'No summary generated.'}</p>`;
@@ -70,7 +98,7 @@ function useAISummary(entity: Entity | null, rows: ShareholderRow[], peers: Peer
     } finally {
       setSummarizing(false);
     }
-  }, [entity, rows, peers]);
+  }, []); // stable — reads from refs at call time
 
   const handleCopy = useCallback(() => {
     if (!panelRef.current) return;
@@ -115,9 +143,9 @@ function DarkToggle() {
 
 function exportCSV(rows: ShareholderRow[], entityName: string) {
   const headers = [
-    'Institution', 'Institution URL', 'Fund', 'Fund URL',
+    'Type', 'Institution', 'Institution URL', 'Fund', 'Fund URL',
     'Report Date', 'Total Holding', 'Prev Holding',
-    '% Holding', 'Change %', 'Fund Managers',
+    '% Holding', 'Change %', 'Fund Managers', 'Emails',
   ];
   const escape = (v: string | number | null | undefined) => {
     const s = v == null ? '' : String(v);
@@ -125,11 +153,12 @@ function exportCSV(rows: ShareholderRow[], entityName: string) {
       ? `"${s.replace(/"/g, '""')}"` : s;
   };
   const csvRows = rows.map(r => [
-    r.insti_name, r.insti_url, r.fund_name, r.fund_url,
+    r.type, r.insti_name, r.insti_url, r.fund_name, r.fund_url,
     r.report_date?.slice(0, 10) || '',
-    r.fund_total_holding, r.fund_previous_total_holding,
+    r.total_holding, r.previous_total_holding,
     r.holding_percentage, r.change_in_percentage,
     (r.person_names || []).filter(Boolean).join('; '),
+    (r.person_emails || []).filter(Boolean).join('; '),
   ].map(escape).join(','));
   const csv = [headers.join(','), ...csvRows].join('\n');
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -151,10 +180,13 @@ function PageContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [peers, setPeers] = useState<Peer[]>([]);
+  const [staleFilter, setStaleFilter] = useState<StaleFilter>('3yr');
   const didRestore = useRef(false);
 
+  const isViewingPeer = !!(activeEntity && baseEntity && activeEntity.id !== baseEntity.id);
+
   const { summarizing, summaryHtml, open, setOpen, copied, panelRef, handleGenerate, handleCopy } =
-    useAISummary(activeEntity, rows, peers);
+    useAISummary(activeEntity, rows, peers, isViewingPeer, staleFilter);
 
   useEffect(() => {
     if (didRestore.current) return;
@@ -206,6 +238,14 @@ function PageContent() {
 
   const displayEntity = activeEntity || baseEntity;
 
+  const [shareCopied, setShareCopied] = useState(false);
+  const handleShare = useCallback(() => {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    });
+  }, []);
+
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg-base)' }}>
       {/* Top nav — logo + search only */}
@@ -221,16 +261,7 @@ function PageContent() {
               router.replace('/', { scroll: false });
             }}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="https://sk-assets.s3.amazonaws.com/online-branding-manual/01-logotypes/curation-compass-box-full-colour-1000px.png"
-              alt="SK"
-              className="w-8 h-8 rounded-lg object-contain"
-            />
-            <div className="text-left hidden sm:block">
-              <h1 className="text-sm font-bold leading-tight tracking-tight" style={{ color: 'var(--text-primary)' }}>Shareholder Registry</h1>
-              <p className="text-[10px] tracking-wide uppercase" style={{ color: 'var(--text-faint)' }}>v2.0</p>
-            </div>
+            <h1 style={{ fontFamily: 'Roboto, sans-serif', fontSize: 22.5, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1 }}>Shareholder Registry</h1>
           </button>
 
           <div className="flex-1 flex justify-center">
@@ -238,6 +269,21 @@ function PageContent() {
           </div>
 
           <div className="flex items-center gap-2 flex-shrink-0">
+            <button
+              onClick={handleShare}
+              title="Copy link"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all"
+              style={{
+                border: `1.5px solid ${shareCopied ? 'var(--accent)' : 'var(--border)'}`,
+                color: shareCopied ? 'var(--accent)' : 'var(--text-muted)',
+                background: shareCopied ? 'var(--accent-bg)' : 'transparent',
+              }}
+              onMouseEnter={e => { if (!shareCopied) { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)'; } }}
+              onMouseLeave={e => { if (!shareCopied) { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)'; } }}
+            >
+              {shareCopied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+              <span className="hidden sm:inline">{shareCopied ? 'Copied!' : 'Share'}</span>
+            </button>
             <DarkToggle />
           </div>
         </div>
@@ -250,7 +296,7 @@ function PageContent() {
             <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4" style={{ background: 'var(--accent-bg)' }}>
               <BarChart3 className="w-8 h-8" style={{ color: 'var(--accent)' }} />
             </div>
-            <h2 className="text-xl font-semibold mb-2" style={{ color: 'var(--text-secondary)' }}>Shareholder Registry v2.0</h2>
+            <h2 className="text-xl font-semibold mb-2" style={{ color: 'var(--text-secondary)' }}>Shareholder Registry</h2>
             <p className="text-sm max-w-sm" style={{ color: 'var(--text-faint)' }}>
               Search for any entity by name or ticker to view its shareholder registry,
               peer comparison, and AI-powered insights.
@@ -344,12 +390,7 @@ function PageContent() {
               onPeersLoaded={setPeers}
             />
 
-            {loading && (
-              <div className="flex items-center gap-3 py-10 justify-center">
-                <div className="w-5 h-5 border-2 border-[#24a9a7] border-t-transparent rounded-full animate-spin" />
-                <span className="text-sm text-gray-500">Loading shareholder data…</span>
-              </div>
-            )}
+            {loading && <SkeletonLoader />}
 
             {error && (
               <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-600">{error}</div>
@@ -376,7 +417,7 @@ function PageContent() {
                       Export CSV
                     </button>
                   </div>
-                  <ShareholderTable rows={rows} />
+                  <ShareholderTable rows={rows} staleFilter={staleFilter} onStaleFilterChange={setStaleFilter} />
                 </div>
               </>
             )}

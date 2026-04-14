@@ -4,42 +4,56 @@ import { useMemo, useState } from 'react';
 import { TrendingUp, TrendingDown, Users, ExternalLink, UserPlus } from 'lucide-react';
 
 interface Row {
-  insti_name: string; insti_url: string; fund_name: string; fund_url: string;
-  report_date: string; fund_total_holding: number; fund_previous_total_holding: number;
+  factset_entity_id: string;
+  insti_name: string; insti_url: string | null; fund_name: string | null; fund_url: string | null;
+  report_date: string; total_holding: number; previous_total_holding: number;
   holding_percentage: number; change_in_percentage: number;
-  person_names: string[]; person_urls: string[];
-  factset_entity_id: string; insti_total_holding: number;
+  type: 'Fund' | 'Institution' | 'Insider';
+  person_names: string[] | null; person_urls: string[] | null;
 }
 interface Props {
   rows: Row[];
   entity: { pretty_name: string; short_name: string; bloomberg_ticker: string } | null;
 }
-type FilterType = 'institutions' | 'funds';
+type FilterType = 'all' | 'institutions' | 'funds';
 
 function useInstiRows(rows: Row[]) {
-  return useMemo(() => {
-    const map = new Map<string, { name: string; url: string; total: number; change: number; prevTotal: number; latestDate: string }>();
-    for (const r of rows) {
-      const key = r.factset_entity_id || r.insti_name;
-      if (!map.has(key)) map.set(key, { name: r.insti_name, url: r.insti_url, total: 0, change: 0, prevTotal: 0, latestDate: r.report_date || '' });
-      const e = map.get(key)!;
-      e.total += Number(r.fund_total_holding) || 0;
-      e.prevTotal += Number(r.fund_previous_total_holding) || 0;
-      if ((r.report_date || '') > e.latestDate) e.latestDate = r.report_date;
-    }
-    for (const [, v] of map) v.change = v.prevTotal > 0 ? (v.total / v.prevTotal - 1) : 0;
-    return [...map.values()];
-  }, [rows]);
+  return useMemo(() => rows
+    .filter(r => r.type === 'Institution')
+    .map(r => ({
+      name: r.insti_name,
+      url: r.insti_url || '',
+      total: Number(r.total_holding) || 0,
+      prevTotal: Number(r.previous_total_holding) || 0,
+      change: Number(r.change_in_percentage) || 0,
+      latestDate: r.report_date || '',
+    })), [rows]);
 }
 
 function useFundRows(rows: Row[]) {
-  return useMemo(() => rows.map(r => ({
-    name: r.fund_name, url: r.fund_url,
-    total: Number(r.fund_total_holding) || 0,
-    prevTotal: Number(r.fund_previous_total_holding) || 0,
-    change: Number(r.change_in_percentage) || 0,
-    latestDate: r.report_date || '',
-  })), [rows]);
+  return useMemo(() => rows
+    .filter(r => r.type === 'Fund')
+    .map(r => ({
+      name: r.fund_name || '',
+      url: r.fund_url || '',
+      total: Number(r.total_holding) || 0,
+      prevTotal: Number(r.previous_total_holding) || 0,
+      change: Number(r.change_in_percentage) || 0,
+      latestDate: r.report_date || '',
+    })), [rows]);
+}
+
+function useAllRows(rows: Row[]) {
+  return useMemo(() => rows
+    .filter(r => r.type === 'Institution' || r.type === 'Insider' || r.type === 'Fund')
+    .map(r => ({
+      name: r.type === 'Fund' ? (r.fund_name || r.insti_name) : r.insti_name,
+      url: r.type === 'Fund' ? (r.fund_url || '') : (r.insti_url || ''),
+      total: Number(r.total_holding) || 0,
+      prevTotal: Number(r.previous_total_holding) || 0,
+      change: Number(r.change_in_percentage) || 0,
+      latestDate: r.report_date || '',
+    })), [rows]);
 }
 
 function sixMonthsAgo() {
@@ -55,28 +69,38 @@ const fmt = (n: number) => {
 };
 const fmtPct = (n: number) => `${n >= 0 ? '+' : ''}${(n * 100).toFixed(1)}%`;
 
-function ExtLink({ href, label }: { href: string; label: string }) {
+function NameWithLink({ href, label }: { href: string; label: string }) {
   return (
-    <a href={href} target="_blank" rel="noreferrer"
-      className="flex items-center gap-1 hover:underline group/link min-w-0"
-      style={{ color: 'var(--text-primary)' }}
-    >
-      <span className="truncate">{label}</span>
-      <ExternalLink className="w-2.5 h-2.5 flex-shrink-0 opacity-0 group-hover/link:opacity-60 transition-opacity" style={{ color: 'var(--text-muted)' }} />
-    </a>
+    <span className="flex items-center gap-1.5 min-w-0">
+      <span className="truncate" style={{ color: 'var(--text-primary)' }}>{label}</span>
+      {href && (
+        <a
+          href={href} target="_blank" rel="noreferrer"
+          title="Open in new window"
+          className="flex-shrink-0 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+          style={{ width: 16, height: 16, border: '1.5px solid var(--accent)', color: 'var(--accent)', background: 'var(--accent-bg)' }}
+        >
+          <ExternalLink className="w-2 h-2" />
+        </a>
+      )}
+    </span>
   );
 }
 
 function FilterPills({ value, onChange }: { value: FilterType; onChange: (v: FilterType) => void }) {
+  const options: { key: FilterType; label: string }[] = [
+    { key: 'all', label: 'All' },
+    { key: 'institutions', label: 'Instis' },
+    { key: 'funds', label: 'Funds' },
+  ];
   return (
     <div className="flex gap-1">
-      {(['institutions', 'funds'] as FilterType[]).map(f => {
-        const active = value === f;
-        const label = f === 'institutions' ? 'Instis' : 'Funds';
+      {options.map(({ key, label }) => {
+        const active = value === key;
         return (
           <button
-            key={f}
-            onClick={() => onChange(f)}
+            key={key}
+            onClick={() => onChange(key)}
             className="px-2 py-0.5 rounded-full text-[10px] font-semibold transition-colors"
             style={active
               ? { color: 'var(--accent)', background: 'var(--accent-bg)', border: '1.5px solid var(--accent)' }
@@ -132,9 +156,9 @@ function MiniTable({ icon, title, subtitle, filter, onFilter, headers, rows, emp
           {rows.length === 0 ? (
             <tr><td colSpan={headers.length} className="sk-td text-center py-4" style={{ color: 'var(--text-faint)', fontSize: 12 }}>{empty}</td></tr>
           ) : rows.map((cells, i) => (
-            <tr key={i} className="sk-tr">
+            <tr key={i} className="sk-tr group" style={i === rows.length - 1 ? { borderBottom: 'none' } : undefined}>
               {cells.map((cell, j) => (
-                <td key={j} className={`sk-td ${j > 0 ? 'right mono' : 'primary'}`} style={{ fontSize: 12, ...(j === 0 ? { overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' } : {}) }}>{cell}</td>
+                <td key={j} className={`sk-td ${j > 0 ? 'right mono' : 'primary'}`} style={{ fontSize: 12, ...(i === rows.length - 1 ? { borderBottom: 'none' } : {}), ...(j === 0 ? { overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' } : {}) }}>{cell}</td>
               ))}
             </tr>
           ))}
@@ -145,19 +169,22 @@ function MiniTable({ icon, title, subtitle, filter, onFilter, headers, rows, emp
 }
 
 export default function SummaryCards({ rows }: Props) {
-  const [topFilter, setTopFilter] = useState<FilterType>('institutions');
-  const [newFilter, setNewFilter] = useState<FilterType>('institutions');
-  const [incrFilter, setIncrFilter] = useState<FilterType>('institutions');
-  const [decrFilter, setDecrFilter] = useState<FilterType>('institutions');
+  const [topFilter, setTopFilter] = useState<FilterType>('all');
+  const [newFilter, setNewFilter] = useState<FilterType>('all');
+  const [incrFilter, setIncrFilter] = useState<FilterType>('all');
+  const [decrFilter, setDecrFilter] = useState<FilterType>('all');
 
   const instiRows = useInstiRows(rows);
   const fundRows = useFundRows(rows);
+  const allRows = useAllRows(rows);
   const cutoff = sixMonthsAgo();
 
-  const topHolders = [...(topFilter === 'institutions' ? instiRows : fundRows)].sort((a, b) => b.total - a.total).slice(0, 5);
-  const newHolders = [...(newFilter === 'institutions' ? instiRows : fundRows)].filter(r => r.latestDate >= cutoff).slice(0, 5);
-  const topIncreases = [...(incrFilter === 'institutions' ? instiRows : fundRows)].filter(r => r.change > 0).sort((a, b) => b.change - a.change).slice(0, 5);
-  const topDecreases = [...(decrFilter === 'institutions' ? instiRows : fundRows)].filter(r => r.change < 0).sort((a, b) => a.change - b.change).slice(0, 5);
+  const getRows = (f: FilterType) => f === 'all' ? allRows : f === 'institutions' ? instiRows : fundRows;
+
+  const topHolders = [...getRows(topFilter)].sort((a, b) => b.total - a.total).slice(0, 5);
+  const newHolders = [...getRows(newFilter)].filter(r => r.latestDate >= cutoff).slice(0, 5);
+  const topIncreases = [...getRows(incrFilter)].filter(r => r.change > 0).sort((a, b) => b.change - a.change).slice(0, 5);
+  const topDecreases = [...getRows(decrFilter)].filter(r => r.change < 0).sort((a, b) => a.change - b.change).slice(0, 5);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
@@ -165,13 +192,10 @@ export default function SummaryCards({ rows }: Props) {
         icon={<Users className="w-3.5 h-3.5" style={{ color: '#24a9a7' }} />}
         title="Top 5 Holders"
         filter={topFilter} onFilter={setTopFilter}
-        headers={['Institution', 'Shares']}
+        headers={['Name', 'Shares']}
         empty="No data"
-        rows={topHolders.map((h, i) => [
-          <span key="n" className="flex items-center gap-2">
-            <span className="text-[10px] font-bold w-3.5 text-right flex-shrink-0" style={{ color: 'var(--text-faint)' }}>{i + 1}</span>
-            <ExtLink href={h.url} label={h.name} />
-          </span>,
+        rows={topHolders.map((h) => [
+          <NameWithLink key="n" href={h.url} label={h.name} />,
           fmt(h.total),
         ])}
       />
@@ -180,10 +204,10 @@ export default function SummaryCards({ rows }: Props) {
         icon={<UserPlus className="w-3.5 h-3.5 text-blue-500" />}
         title="New Holders" subtitle="6mo"
         filter={newFilter} onFilter={setNewFilter}
-        headers={['Institution', 'Since']}
+        headers={['Name', 'Since']}
         empty="No new holders"
         rows={newHolders.map(h => [
-          <ExtLink key="n" href={h.url} label={h.name} />,
+          <NameWithLink key="n" href={h.url} label={h.name} />,
           <span key="d" style={{ color: 'var(--text-muted)', fontSize: 11 }}>{h.latestDate?.slice(0, 10)}</span>,
         ])}
       />
@@ -192,10 +216,10 @@ export default function SummaryCards({ rows }: Props) {
         icon={<TrendingUp className="w-3.5 h-3.5 text-emerald-500" />}
         title="Top Increases"
         filter={incrFilter} onFilter={setIncrFilter}
-        headers={['Institution', 'Change']}
+        headers={['Name', 'Change']}
         empty="No increases"
         rows={topIncreases.map(h => [
-          <ExtLink key="n" href={h.url} label={h.name} />,
+          <NameWithLink key="n" href={h.url} label={h.name} />,
           <span key="c" className="font-semibold" style={{ color: '#059669' }}>{fmtPct(h.change)}</span>,
         ])}
       />
@@ -204,10 +228,10 @@ export default function SummaryCards({ rows }: Props) {
         icon={<TrendingDown className="w-3.5 h-3.5 text-red-500" />}
         title="Top Decreases"
         filter={decrFilter} onFilter={setDecrFilter}
-        headers={['Institution', 'Change']}
+        headers={['Name', 'Change']}
         empty="No decreases"
         rows={topDecreases.map(h => [
-          <ExtLink key="n" href={h.url} label={h.name} />,
+          <NameWithLink key="n" href={h.url} label={h.name} />,
           <span key="c" className="font-semibold" style={{ color: '#dc2626' }}>{fmtPct(h.change)}</span>,
         ])}
       />

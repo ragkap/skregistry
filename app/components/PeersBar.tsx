@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Plus, Search } from 'lucide-react';
+import { X, Plus, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface Entity {
   id: number;
@@ -135,6 +135,32 @@ export default function PeersBar({ baseEntity, activeEntityId, onSelect, onPeers
   const [addedPeers, setAddedPeers] = useState<Entity[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<Map<number, HTMLButtonElement>>(new Map());
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const updateScrollState = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 4);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+  }, []);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    updateScrollState();
+    el.addEventListener('scroll', updateScrollState, { passive: true });
+    const ro = new ResizeObserver(updateScrollState);
+    ro.observe(el);
+    return () => { el.removeEventListener('scroll', updateScrollState); ro.disconnect(); };
+  }, [updateScrollState]);
+
+  // Re-check after peers load
+  useEffect(() => { setTimeout(updateScrollState, 100); }, [peers.length, addedPeers.length, updateScrollState]);
+
+  const scroll = (dir: 'left' | 'right') => {
+    scrollRef.current?.scrollBy({ left: dir === 'right' ? 420 : -420, behavior: 'smooth' });
+  };
 
   const setCardRef = useCallback((id: number, el: HTMLButtonElement | null) => {
     if (el) cardRefs.current.set(id, el);
@@ -195,16 +221,45 @@ export default function PeersBar({ baseEntity, activeEntityId, onSelect, onPeers
       <div className="px-4 py-2 flex items-center gap-3" style={{ borderBottom: '1px solid var(--border)' }}>
         <span className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Peers Comparison</span>
         {loading && <div className="w-3 h-3 border-2 border-[#24a9a7] border-t-transparent rounded-full animate-spin" />}
-        <span className="ml-auto text-[10px]" style={{ color: 'var(--text-faint)' }}>scroll →</span>
       </div>
 
       <div className="relative">
-        <div className="pointer-events-none absolute right-0 top-0 h-full w-12 z-10"
-          style={{ background: 'linear-gradient(to right, transparent, var(--bg-surface))' }} />
+        {/* Left fade + chevron */}
+        {canScrollLeft && (
+          <>
+            <div className="pointer-events-none absolute left-0 top-0 h-full w-16 z-10"
+              style={{ background: 'linear-gradient(to left, transparent, var(--bg-surface))' }} />
+            <button
+              onClick={() => scroll('left')}
+              className="absolute left-1 top-1/2 -translate-y-1/2 z-20 flex items-center justify-center rounded-full shadow-md transition-colors"
+              style={{ width: 28, height: 28, background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)'; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+          </>
+        )}
+        {/* Right fade + chevron */}
+        {canScrollRight && (
+          <>
+            <div className="pointer-events-none absolute right-0 top-0 h-full w-16 z-10"
+              style={{ background: 'linear-gradient(to right, transparent, var(--bg-surface))' }} />
+            <button
+              onClick={() => scroll('right')}
+              className="absolute right-1 top-1/2 -translate-y-1/2 z-20 flex items-center justify-center rounded-full shadow-md transition-colors"
+              style={{ width: 28, height: 28, background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)'; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </>
+        )}
         <div
           ref={scrollRef}
           className="flex gap-2 px-4 py-3 overflow-x-auto items-start"
-          style={{ scrollbarWidth: 'thin', scrollbarColor: 'var(--border) transparent', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
+          style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
         >
           {allEntities.map((e, i) => {
             const isActive = e.id === activeEntityId;
