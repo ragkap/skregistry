@@ -239,6 +239,7 @@ function PageContent() {
   const displayEntity = activeEntity || baseEntity;
 
   const [shareCopied, setShareCopied] = useState(false);
+  const [searchExpanded, setSearchExpanded] = useState(false);
   const handleShare = useCallback(() => {
     navigator.clipboard.writeText(window.location.href).then(() => {
       setShareCopied(true);
@@ -252,7 +253,7 @@ function PageContent() {
       <header className="sticky top-0 z-40" style={{ background: 'var(--bg-surface)', borderBottom: '1px solid var(--border)' }}>
         <div className="w-full px-4 sm:px-6 py-3 flex items-center gap-3 sm:gap-4 mx-auto" style={{ maxWidth: 1232 }}>
           <button
-            className="flex items-center gap-2 flex-shrink-0 hover:opacity-80 transition-opacity"
+            className={`flex items-center gap-2 flex-shrink-0 hover:opacity-80 transition-opacity${searchExpanded ? ' hidden sm:flex' : ''}`}
             onClick={() => {
               setBaseEntity(null);
               setActiveEntity(null);
@@ -265,10 +266,10 @@ function PageContent() {
           </button>
 
           <div className="flex-1 flex justify-center">
-            <EntitySearch onSelect={handleEntitySelect} selected={baseEntity} />
+            <EntitySearch onSelect={handleEntitySelect} selected={baseEntity} onFocusChange={setSearchExpanded} />
           </div>
 
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className={`flex items-center gap-2 flex-shrink-0${searchExpanded ? ' hidden sm:flex' : ''}`}>
             <button
               onClick={handleShare}
               title="Copy link"

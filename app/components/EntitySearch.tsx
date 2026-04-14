@@ -15,9 +15,10 @@ interface Entity {
 interface Props {
   onSelect: (entity: Entity) => void;
   selected: Entity | null;
+  onFocusChange?: (focused: boolean) => void;
 }
 
-export default function EntitySearch({ onSelect, selected }: Props) {
+export default function EntitySearch({ onSelect, selected, onFocusChange }: Props) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Entity[]>([]);
   const [open, setOpen] = useState(false);
@@ -67,7 +68,8 @@ export default function EntitySearch({ onSelect, selected }: Props) {
           type="text"
           value={query}
           onChange={e => setQuery(e.target.value)}
-          onFocus={() => results.length > 0 && setOpen(true)}
+          onFocus={() => { onFocusChange?.(true); results.length > 0 && setOpen(true); }}
+          onBlur={() => setTimeout(() => onFocusChange?.(false), 150)}
           placeholder={selected ? `${selected.pretty_name} (${selected.bloomberg_ticker || selected.short_name})` : 'Search by name or ticker...'}
           className="w-full pl-11 pr-11 py-3 border-2 rounded-xl text-sm focus:outline-none focus:ring-0 shadow-sm transition-colors font-medium"
           style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', borderColor: 'var(--border)', '--placeholder-color': 'var(--text-faint)' } as React.CSSProperties}
