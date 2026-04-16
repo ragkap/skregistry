@@ -18,7 +18,9 @@ export const metadata: Metadata = {
   title: "Shareholder Registry",
   description: "Institutional shareholder data, peer comparison and AI-powered registry analysis.",
   icons: {
-    icon: "https://sk-assets.s3.amazonaws.com/online-branding-manual/01-logotypes/curation-compass-box-full-colour-1000px.png",
+    icon: "/favicon.png",
+    shortcut: "/favicon.png",
+    apple: "/favicon.png",
   },
   openGraph: {
     title: "Smartkarma Shareholder Registry",
