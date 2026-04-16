@@ -101,6 +101,38 @@ export default function PeersPanel({ entity, onPeerSelect, currentRows }: Props)
           </p>
         </div>
       )}
+
+      {/* SK Tool Links */}
+      <div className="px-4 py-3 border-t border-gray-100 flex flex-col gap-2">
+        <a
+          href="https://www.smartkarma.com/tools/peers-comparison"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 hover:border-[#24a9a7] hover:bg-[#24a9a7]/5 transition-colors group"
+        >
+          <div className="min-w-0">
+            <span className="text-[12px] font-medium text-gray-700 group-hover:text-[#24a9a7] transition-colors leading-tight block">
+              Peer Comparison
+            </span>
+            <span className="text-[10px] text-gray-400 leading-tight block">Compare fundamentals of peer companies</span>
+          </div>
+          <span className="text-[11px] text-gray-400 group-hover:text-[#24a9a7]/70 transition-colors ml-auto flex-shrink-0">↗</span>
+        </a>
+        <a
+          href="https://www.smartkarma.com/tools/comparables"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 hover:border-[#24a9a7] hover:bg-[#24a9a7]/5 transition-colors group"
+        >
+          <div className="min-w-0">
+            <span className="text-[12px] font-medium text-gray-700 group-hover:text-[#24a9a7] transition-colors leading-tight block">
+              Comparables Generator
+            </span>
+            <span className="text-[10px] text-gray-400 leading-tight block">Publicly traded comps &amp; precedent transactions</span>
+          </div>
+          <span className="text-[11px] text-gray-400 group-hover:text-[#24a9a7]/70 transition-colors ml-auto flex-shrink-0">↗</span>
+        </a>
+      </div>
     </div>
   );
 }
