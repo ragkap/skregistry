@@ -6,7 +6,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const res = await fetch(
-      `${process.env.SK_API_BASE}/entities/${slug}/smart-peers?`,
+      `${process.env.SK_API_BASE}/entities/${slug}/smart-peers?page%5Bsize%5D=10&filter%5Bsuggested%5D=true&page%5Bnumber%5D=1`,
       {
         headers: {
           'Authorization': `Token token="${process.env.SK_API_TOKEN}", email="${process.env.SK_API_EMAIL}"`,
