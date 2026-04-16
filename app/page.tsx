@@ -375,26 +375,26 @@ function PageContent() {
         ) : (
           <div className="space-y-4">
             {/* Entity info bar + AI CTA */}
-            {displayEntity && (
+            {baseEntity && (
               <div className="flex items-center justify-between gap-2 sm:gap-4 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
                 <div className="flex items-center gap-3 min-w-0">
-                  <span className="font-semibold text-sm truncate" style={{ color: 'var(--text-primary)' }}>{displayEntity.pretty_name}</span>
-                  {displayEntity.bloomberg_ticker && (
+                  <span className="font-semibold text-sm truncate" style={{ color: 'var(--text-primary)' }}>{baseEntity.pretty_name}</span>
+                  {baseEntity.bloomberg_ticker && (
                     <span className="text-xs font-mono px-2 py-0.5 rounded-full font-semibold flex-shrink-0" style={{ background: 'var(--accent-bg)', color: 'var(--accent)' }}>
-                      {displayEntity.bloomberg_ticker.split(',')[0].trim()}
+                      {baseEntity.bloomberg_ticker.split(',')[0].trim()}
                     </span>
                   )}
-                  {displayEntity.country && (
+                  {baseEntity.country && (
                     <span className="hidden sm:flex items-center gap-1 text-xs flex-shrink-0" style={{ color: 'var(--text-muted)' }}>
-                      <MapPin className="w-3 h-3" />{displayEntity.country}
+                      <MapPin className="w-3 h-3" />{baseEntity.country}
                     </span>
                   )}
-                  {displayEntity.sector && (
+                  {baseEntity.sector && (
                     <span className="hidden md:flex items-center gap-1 text-xs flex-shrink-0" style={{ color: 'var(--text-muted)' }}>
-                      <Layers className="w-3 h-3" />{displayEntity.sector}
+                      <Layers className="w-3 h-3" />{baseEntity.sector}
                     </span>
                   )}
-                  {activeEntity && baseEntity && activeEntity.id !== baseEntity.id && (
+                  {activeEntity && activeEntity.id !== baseEntity.id && (
                     <span className="text-[10px] font-semibold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full flex-shrink-0">PEER</span>
                   )}
                 </div>
