@@ -218,11 +218,11 @@ export default function PeersBar({ baseEntity, activeEntityId, onSelect, onPeers
 
   return (
     <div className="rounded-xl shadow-sm overflow-hidden" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
-      <div className="px-4 py-2 flex items-center gap-3" style={{ borderBottom: '1px solid var(--border)' }}>
+      <div className="px-4 py-2 flex flex-wrap items-center gap-2" style={{ borderBottom: '1px solid var(--border)' }}>
         <span className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Peers Comparison</span>
         {loading && <div className="w-3 h-3 border-2 border-[#24a9a7] border-t-transparent rounded-full animate-spin" />}
-        <div className="ml-auto flex items-center gap-2">
-          <span className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-faint)' }}>Related Tools</span>
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          <span className="hidden sm:inline text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-faint)' }}>Related Tools</span>
           <a
             href="https://www.smartkarma.com/tools/peers-comparison"
             target="_blank"
@@ -242,6 +242,16 @@ export default function PeersBar({ baseEntity, activeEntityId, onSelect, onPeers
             style={{ border: '1.5px solid #24a9a7', color: '#24a9a7', borderRadius: 999, background: 'transparent' }}
           >
             Comparables Generator ↗
+          </a>
+          <a
+            href="https://www.smartkarma.com/tools/grt-comparison"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Graph Ratio (GRT) comparison"
+            className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium transition-opacity hover:opacity-80"
+            style={{ border: '1.5px solid #24a9a7', color: '#24a9a7', borderRadius: 999, background: 'transparent' }}
+          >
+            Graph Ratio (GRT) ↗
           </a>
         </div>
       </div>
