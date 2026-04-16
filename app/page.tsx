@@ -318,8 +318,8 @@ function PageContent() {
           <div className="hidden sm:flex flex-1 px-6">
             <EntitySearch onSelect={handleEntitySelect} selected={baseEntity} onFocusChange={setSearchExpanded} />
           </div>
-          {/* Mobile overlay search — hidden on desktop so it doesn't affect flex layout */}
-          <div className="sm:hidden">
+          {/* Mobile overlay search — zero size, just mounts the overlay portal */}
+          <div className="sm:hidden w-0 h-0 overflow-hidden">
             <EntitySearch
               onSelect={handleEntitySelect}
               selected={baseEntity}
