@@ -11,9 +11,20 @@ interface Row {
   type: 'Fund' | 'Institution' | 'Insider';
   person_names: string[] | null; person_urls: string[] | null;
 }
+type StaleFilter = 'all' | '3yr' | '5yr' | '10yr';
+
+function staleCutoff(f: StaleFilter): string | null {
+  if (f === 'all') return null;
+  const years = f === '3yr' ? 3 : f === '5yr' ? 5 : 10;
+  const d = new Date();
+  d.setFullYear(d.getFullYear() - years);
+  return d.toISOString().slice(0, 10);
+}
+
 interface Props {
   rows: Row[];
   entity: { pretty_name: string; short_name: string; bloomberg_ticker: string } | null;
+  staleFilter?: StaleFilter;
 }
 type FilterType = 'all' | 'institutions' | 'funds';
 
@@ -168,16 +179,22 @@ function MiniTable({ icon, title, subtitle, filter, onFilter, headers, rows, emp
   );
 }
 
-export default function SummaryCards({ rows }: Props) {
+export default function SummaryCards({ rows, staleFilter = 'all' }: Props) {
   const [topFilter, setTopFilter] = useState<FilterType>('all');
   const [newFilter, setNewFilter] = useState<FilterType>('all');
   const [incrFilter, setIncrFilter] = useState<FilterType>('all');
   const [decrFilter, setDecrFilter] = useState<FilterType>('all');
 
-  const instiRows = useInstiRows(rows);
-  const fundRows = useFundRows(rows);
-  const allRows = useAllRows(rows);
   const cutoff = sixMonthsAgo();
+  const staleCut = staleCutoff(staleFilter);
+  const filteredRows = useMemo(
+    () => staleCut ? rows.filter(r => r.report_date >= staleCut) : rows,
+    [rows, staleCut]
+  );
+
+  const instiRows = useInstiRows(filteredRows);
+  const fundRows = useFundRows(filteredRows);
+  const allRows = useAllRows(filteredRows);
 
   const getRows = (f: FilterType) => f === 'all' ? allRows : f === 'institutions' ? instiRows : fundRows;
 

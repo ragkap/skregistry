@@ -16,9 +16,23 @@ const robotoMono = Roboto_Mono({
 
 export const metadata: Metadata = {
   title: "Shareholder Registry",
-  description: "Shareholder Registry — peer comparison and AI-powered insights",
+  description: "Institutional shareholder data, peer comparison and AI-powered registry analysis.",
   icons: {
     icon: "https://sk-assets.s3.amazonaws.com/online-branding-manual/01-logotypes/curation-compass-box-full-colour-1000px.png",
+  },
+  openGraph: {
+    title: "Smartkarma Shareholder Registry",
+    description: "Institutional shareholder data, peer comparison and AI-powered registry analysis.",
+    url: "https://skregistry.smartkarma.com",
+    siteName: "Smartkarma",
+    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "Smartkarma Shareholder Registry" }],
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Smartkarma Shareholder Registry",
+    description: "Institutional shareholder data, peer comparison and AI-powered registry analysis.",
+    images: ["/opengraph-image"],
   },
 };
 

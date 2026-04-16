@@ -7,7 +7,7 @@ import SummaryCards from './components/SummaryCards';
 import ShareholderTable, { staleCutoff, type StaleFilter } from './components/ShareholderTable';
 import PeersBar from './components/PeersBar';
 import SkeletonLoader from './components/SkeletonLoader';
-import { BarChart3, Sparkles, Copy, Check, MapPin, Layers, Sun, Moon, Download, Share2 } from 'lucide-react';
+import { BarChart3, Sparkles, Copy, Check, MapPin, Layers, Sun, Moon, Download, Share2, Search } from 'lucide-react';
 
 interface Entity {
   id: number;
@@ -267,6 +267,7 @@ function PageContent() {
 
   const [shareCopied, setShareCopied] = useState(false);
   const [searchExpanded, setSearchExpanded] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const handleShare = useCallback(() => {
     const url = window.location.href;
     const markShared = () => { setShareCopied(true); setTimeout(() => setShareCopied(false), 2000); };
@@ -313,11 +314,31 @@ function PageContent() {
             <h1 style={{ fontFamily: 'Roboto, sans-serif', fontSize: 22.5, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1 }}>Shareholder Registry</h1>
           </button>
 
-          <div className="flex-1 flex justify-center">
+          {/* Desktop: full search in center */}
+          <div className="hidden sm:flex flex-1 px-6">
             <EntitySearch onSelect={handleEntitySelect} selected={baseEntity} onFocusChange={setSearchExpanded} />
           </div>
+          {/* Mobile overlay search — hidden on desktop so it doesn't affect flex layout */}
+          <div className="sm:hidden">
+            <EntitySearch
+              onSelect={handleEntitySelect}
+              selected={baseEntity}
+              onFocusChange={setSearchExpanded}
+              mobileExpanded={mobileSearchOpen}
+              onMobileExpandedChange={setMobileSearchOpen}
+              mobileOnly
+            />
+          </div>
 
-          <div className={`flex items-center gap-2 flex-shrink-0${searchExpanded ? ' hidden sm:flex' : ''}`}>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {/* Mobile search icon */}
+            <button
+              className="sm:hidden flex items-center justify-center rounded-lg transition-colors"
+              style={{ width: 34, height: 34, border: '1.5px solid var(--border)', color: 'var(--text-muted)', background: 'transparent' }}
+              onClick={() => setMobileSearchOpen(true)}
+            >
+              <Search className="w-4 h-4" />
+            </button>
             <button
               onClick={handleShare}
               title="Copy link"
@@ -389,7 +410,7 @@ function PageContent() {
                     onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = summaryHtml && open ? 'transparent' : '#24a9a7'; if (summaryHtml && open) (e.currentTarget as HTMLElement).style.color = '#24a9a7'; }}
                   >
                     <Sparkles className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">
+                    <span>
                       {summarizing ? 'Generating…' : summaryHtml && !open ? 'View Analysis' : summaryHtml && open ? 'Regenerate Analysis' : 'Generate Registry Analysis'}
                     </span>
                   </button>
@@ -401,10 +422,13 @@ function PageContent() {
             {open && (
               <div className="rounded-xl shadow-sm overflow-hidden" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderLeft: '3px solid var(--accent)' }}>
                 <div className="flex items-center justify-between px-5 py-2.5" style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg-subtle)' }}>
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4" style={{ color: 'var(--accent)' }} />
-                    <span className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>Registry Analysis and IR Opportunities</span>
-                    {displayEntity && <span className="text-xs" style={{ color: 'var(--text-faint)' }}>— {displayEntity.pretty_name}</span>}
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Sparkles className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--accent)' }} />
+                    <span className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
+                      <span className="sm:hidden">Registry Analysis & IR Plan</span>
+                      <span className="hidden sm:inline">Registry Analysis and IR Opportunities</span>
+                    </span>
+                    {displayEntity && <span className="hidden sm:inline text-xs flex-shrink-0" style={{ color: 'var(--text-faint)' }}>— {displayEntity.pretty_name}</span>}
                   </div>
                   <div className="flex items-center gap-3">
                     {summaryHtml && !summarizing && (
@@ -416,7 +440,7 @@ function PageContent() {
                         onMouseLeave={e => { if (!copied) (e.currentTarget as HTMLElement).style.background = '#24a9a7'; }}
                       >
                         {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                        {copied ? 'Copied!' : 'Copy to Clipboard'}
+                        <span className="hidden sm:inline">{copied ? 'Copied!' : 'Copy to Clipboard'}</span>
                       </button>
                     )}
                     <a
@@ -457,7 +481,7 @@ function PageContent() {
 
             {!loading && !error && rows.length > 0 && (
               <>
-                <SummaryCards rows={rows} entity={activeEntity} />
+                <SummaryCards rows={rows} entity={activeEntity} staleFilter={staleFilter} />
 
                 <div>
                   <div className="flex items-center justify-between mb-2">

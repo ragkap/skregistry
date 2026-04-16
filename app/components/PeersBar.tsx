@@ -218,41 +218,30 @@ export default function PeersBar({ baseEntity, activeEntityId, onSelect, onPeers
 
   return (
     <div className="rounded-xl shadow-sm overflow-hidden" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
-      <div className="px-4 py-2 flex flex-wrap items-center gap-2" style={{ borderBottom: '1px solid var(--border)' }}>
-        <span className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Peers Comparison</span>
-        {loading && <div className="w-3 h-3 border-2 border-[#24a9a7] border-t-transparent rounded-full animate-spin" />}
-        <div className="ml-auto flex flex-wrap items-center gap-2">
-          <span className="hidden sm:inline text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-faint)' }}>Related Tools</span>
-          <a
-            href="https://www.smartkarma.com/tools/peers-comparison"
-            target="_blank"
-            rel="noopener noreferrer"
-            title="Compare fundamentals of peer companies"
-            className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium transition-opacity hover:opacity-80"
-            style={{ border: '1.5px solid #24a9a7', color: '#24a9a7', borderRadius: 999, background: 'transparent' }}
-          >
-            Peer Comparison ↗
-          </a>
-          <a
-            href="https://www.smartkarma.com/tools/comparables"
-            target="_blank"
-            rel="noopener noreferrer"
-            title="Publicly traded comparables and precedent transactions"
-            className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium transition-opacity hover:opacity-80"
-            style={{ border: '1.5px solid #24a9a7', color: '#24a9a7', borderRadius: 999, background: 'transparent' }}
-          >
-            Comparables Generator ↗
-          </a>
-          <a
-            href="https://www.smartkarma.com/tools/grt-comparison"
-            target="_blank"
-            rel="noopener noreferrer"
-            title="Graph Ratio (GRT) comparison"
-            className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium transition-opacity hover:opacity-80"
-            style={{ border: '1.5px solid #24a9a7', color: '#24a9a7', borderRadius: 999, background: 'transparent' }}
-          >
-            Graph Ratio (GRT) ↗
-          </a>
+      <div style={{ borderBottom: '1px solid var(--border)' }}>
+        <div className="px-4 py-2 flex items-center gap-2">
+          <span className="text-[11px] font-semibold uppercase tracking-wide flex-shrink-0" style={{ color: 'var(--text-muted)' }}>Peers Comparison</span>
+          {loading && <div className="w-3 h-3 border-2 border-[#24a9a7] border-t-transparent rounded-full animate-spin flex-shrink-0" />}
+        </div>
+        <div className="px-4 pb-2 flex items-center gap-2 overflow-x-auto" style={{ scrollbarWidth: 'none' } as React.CSSProperties}>
+          <span className="text-[10px] font-semibold uppercase tracking-wide flex-shrink-0 mr-1" style={{ color: 'var(--text-faint)' }}>Related Tools</span>
+          {[
+            { label: 'Peer Comparison', href: 'https://www.smartkarma.com/tools/peers-comparison', title: 'Compare fundamentals of peer companies' },
+            { label: 'Comparables Generator', href: 'https://www.smartkarma.com/tools/comparables', title: 'Publicly traded comparables and precedent transactions' },
+            { label: 'Graph Ratio (GRT)', href: 'https://www.smartkarma.com/tools/grt-comparison', title: 'Graph Ratio comparison' },
+          ].map(({ label, href, title }) => (
+            <a
+              key={href}
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={title}
+              className="flex-shrink-0 flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium transition-opacity hover:opacity-80"
+              style={{ border: '1.5px solid #24a9a7', color: '#24a9a7', borderRadius: 999, background: 'transparent', whiteSpace: 'nowrap' }}
+            >
+              {label} ↗
+            </a>
+          ))}
         </div>
       </div>
 
