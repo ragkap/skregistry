@@ -142,7 +142,7 @@ Return ONLY valid HTML (no markdown, no \`\`\`html fences) using this structure:
 - Keep it concise — max 600 words total
 
 Start the report with this exact header block:
-<p><strong>Smartkarma Shareholder Registry Analysis — v2.0</strong></p>
+<p><strong>Smartkarma Shareholder Registry Analysis</strong></p>
 <p><strong>${entityName}</strong>${ticker ? ` &nbsp;·&nbsp; <span style="font-family:monospace">${ticker}</span>` : ''} &nbsp;·&nbsp; ${country} &nbsp;·&nbsp; ${sector}</p>
 
 Then include these sections:

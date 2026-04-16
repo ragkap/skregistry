@@ -99,10 +99,7 @@ input:focus { border-color: var(--accent) !important; }
 .summary-html .negative { color: #dc2626; font-weight: 500; }
 .summary-html .disclaimer {
   margin-top: 1.25rem;
-  padding: 0.6rem 0.875rem;
-  background: var(--bg-muted);
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  padding: 0.6rem 0;
   font-size: 0.75rem;
   color: var(--text-muted);
   line-height: 1.5;

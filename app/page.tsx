@@ -7,7 +7,7 @@ import SummaryCards from './components/SummaryCards';
 import ShareholderTable, { staleCutoff, type StaleFilter } from './components/ShareholderTable';
 import PeersBar from './components/PeersBar';
 import SkeletonLoader from './components/SkeletonLoader';
-import { BarChart3, Sparkles, Copy, Check, X, MapPin, Layers, Sun, Moon, Download } from 'lucide-react';
+import { BarChart3, Sparkles, Copy, Check, MapPin, Layers, Sun, Moon, Download, Share2 } from 'lucide-react';
 
 interface Entity {
   id: number;
@@ -48,7 +48,7 @@ interface ShareholderRow {
   person_countries: string[] | null;
 }
 
-const DISCLAIMER = `<p class="disclaimer">⚠ <em>This content is AI-generated and displayed for general informational purposes only. Please verify independently before use.</em></p>`;
+const DISCLAIMER = `<p class="disclaimer"><em>This content is AI-generated and displayed for general informational purposes only. Please verify independently before use.</em></p>`;
 
 function useAISummary(entity: Entity | null, rows: ShareholderRow[], peers: Peer[], isViewingPeer: boolean, staleFilter: StaleFilter) {
   const [summarizing, setSummarizing] = useState(false);
@@ -102,14 +102,41 @@ function useAISummary(entity: Entity | null, rows: ShareholderRow[], peers: Peer
 
   const handleCopy = useCallback(() => {
     if (!panelRef.current) return;
-    // Copy as HTML to clipboard
     const html = panelRef.current.innerHTML;
-    const blob = new Blob([html], { type: 'text/html' });
-    const item = new ClipboardItem({ 'text/html': blob, 'text/plain': new Blob([panelRef.current.innerText], { type: 'text/plain' }) });
-    navigator.clipboard.write([item]).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
+    const text = panelRef.current.innerText;
+
+    const markCopied = () => { setCopied(true); setTimeout(() => setCopied(false), 2000); };
+
+    // Try modern Clipboard API first (blocked in cross-origin iframes without allow="clipboard-write")
+    if (navigator.clipboard && typeof ClipboardItem !== 'undefined') {
+      const item = new ClipboardItem({
+        'text/html': new Blob([html], { type: 'text/html' }),
+        'text/plain': new Blob([text], { type: 'text/plain' }),
+      });
+      navigator.clipboard.write([item]).then(markCopied).catch(() => {
+        // Fallback: execCommand works in iframes even without clipboard-write permission
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        markCopied();
+      });
+    } else {
+      // Older browsers / restricted contexts
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      markCopied();
+    }
   }, []);
 
   return { summarizing, summaryHtml, open, setOpen, copied, panelRef, handleGenerate, handleCopy };
@@ -134,7 +161,7 @@ function DarkToggle() {
       onClick={toggle}
       title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
       className="flex items-center justify-center rounded-lg transition-colors flex-shrink-0"
-      style={{ width: 36, height: 36, color: 'var(--text-muted)', background: 'var(--bg-muted)', border: '1px solid var(--border)' }}
+      style={{ width: 34, height: 34, color: 'var(--text-muted)', background: 'var(--bg-muted)', border: '1px solid var(--border)' }}
     >
       {dark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
     </button>
@@ -241,10 +268,31 @@ function PageContent() {
   const [shareCopied, setShareCopied] = useState(false);
   const [searchExpanded, setSearchExpanded] = useState(false);
   const handleShare = useCallback(() => {
-    navigator.clipboard.writeText(window.location.href).then(() => {
-      setShareCopied(true);
-      setTimeout(() => setShareCopied(false), 2000);
-    });
+    const url = window.location.href;
+    const markShared = () => { setShareCopied(true); setTimeout(() => setShareCopied(false), 2000); };
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(url).then(markShared).catch(() => {
+        const ta = document.createElement('textarea');
+        ta.value = url;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        markShared();
+      });
+    } else {
+      const ta = document.createElement('textarea');
+      ta.value = url;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      markShared();
+    }
   }, []);
 
   return (
@@ -273,8 +321,9 @@ function PageContent() {
             <button
               onClick={handleShare}
               title="Copy link"
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all"
+              className="flex items-center justify-center rounded-lg transition-all"
               style={{
+                width: 34, height: 34,
                 border: `1.5px solid ${shareCopied ? 'var(--accent)' : 'var(--border)'}`,
                 color: shareCopied ? 'var(--accent)' : 'var(--text-muted)',
                 background: shareCopied ? 'var(--accent-bg)' : 'transparent',
@@ -282,8 +331,7 @@ function PageContent() {
               onMouseEnter={e => { if (!shareCopied) { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)'; } }}
               onMouseLeave={e => { if (!shareCopied) { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)'; } }}
             >
-              {shareCopied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-              <span className="hidden sm:inline">{shareCopied ? 'Copied!' : 'Share'}</span>
+              {shareCopied ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
             </button>
             <DarkToggle />
           </div>
@@ -329,14 +377,23 @@ function PageContent() {
                     <span className="text-[10px] font-semibold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full flex-shrink-0">PEER</span>
                   )}
                 </div>
-                <button
-                  onClick={handleGenerate}
-                  disabled={summarizing || rows.length === 0}
-                  className="ai-pulse flex-shrink-0 flex items-center gap-2 px-3 sm:px-5 py-2 bg-[#24a9a7] text-white rounded-full font-semibold text-xs hover:bg-[#1d9896] active:bg-[#178a88] transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">{summarizing ? 'Generating…' : 'Generate AI Summary'}</span>
-                </button>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <button
+                    onClick={summaryHtml && !open ? () => setOpen(true) : handleGenerate}
+                    disabled={summarizing || rows.length === 0}
+                    className="flex-shrink-0 flex items-center gap-2 px-3 sm:px-5 py-2 rounded-full font-semibold text-xs transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
+                    style={summaryHtml && open
+                      ? { background: 'transparent', color: '#24a9a7', border: '1.5px solid #24a9a7' }
+                      : { background: '#24a9a7', color: '#fff' }}
+                    onMouseEnter={e => { if (!summarizing) (e.currentTarget as HTMLElement).style.background = summaryHtml && open ? '#24a9a7' : '#1d9896'; if (summaryHtml && open) (e.currentTarget as HTMLElement).style.color = '#fff'; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = summaryHtml && open ? 'transparent' : '#24a9a7'; if (summaryHtml && open) (e.currentTarget as HTMLElement).style.color = '#24a9a7'; }}
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">
+                      {summarizing ? 'Generating…' : summaryHtml && !open ? 'View Analysis' : summaryHtml && open ? 'Regenerate Analysis' : 'Generate Registry Analysis'}
+                    </span>
+                  </button>
+                </div>
               </div>
             )}
 
@@ -346,28 +403,29 @@ function PageContent() {
                 <div className="flex items-center justify-between px-5 py-2.5" style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg-subtle)' }}>
                   <div className="flex items-center gap-2">
                     <Sparkles className="w-4 h-4" style={{ color: 'var(--accent)' }} />
-                    <span className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>AI Summary</span>
+                    <span className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>Registry Analysis and IR Opportunities</span>
                     {displayEntity && <span className="text-xs" style={{ color: 'var(--text-faint)' }}>— {displayEntity.pretty_name}</span>}
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
                     {summaryHtml && !summarizing && (
                       <button
                         onClick={handleCopy}
-                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors"
-                        style={{ color: 'var(--text-secondary)', background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
-                        onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-muted)')}
-                        onMouseLeave={e => (e.currentTarget.style.background = 'var(--bg-surface)')}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold transition-colors shadow-sm"
+                        style={{ background: copied ? '#10b981' : '#24a9a7', color: '#fff' }}
+                        onMouseEnter={e => { if (!copied) (e.currentTarget as HTMLElement).style.background = '#1d9896'; }}
+                        onMouseLeave={e => { if (!copied) (e.currentTarget as HTMLElement).style.background = '#24a9a7'; }}
                       >
-                        {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
-                        {copied ? 'Copied' : 'Copy HTML'}
+                        {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                        {copied ? 'Copied!' : 'Copy to Clipboard'}
                       </button>
                     )}
-                    <button onClick={() => setOpen(false)} className="p-1 rounded-lg transition-colors" style={{ color: 'var(--text-muted)' }}
-                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-muted)')}
-                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                    <a
+                      onClick={() => setOpen(false)}
+                      className="text-[11px] font-medium cursor-pointer"
+                      style={{ color: 'var(--text-muted)', textDecoration: 'underline' }}
                     >
-                      <X className="w-4 h-4" />
-                    </button>
+                      Collapse
+                    </a>
                   </div>
                 </div>
                 <div className="px-5 py-4">
