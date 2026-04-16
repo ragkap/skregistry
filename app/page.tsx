@@ -330,7 +330,7 @@ function PageContent() {
             />
           </div>
 
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center gap-2 flex-shrink-0 ml-auto sm:ml-0">
             {/* Mobile search icon */}
             <button
               className="sm:hidden flex items-center justify-center rounded-lg transition-colors"
