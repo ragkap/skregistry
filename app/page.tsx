@@ -85,10 +85,23 @@ function useAISummary(entity: Entity | null, rows: ShareholderRow[], peers: Peer
     setSummaryHtml('');
     setOpen(true);
     try {
+      // Slim shareholders payload to only fields the server consumes — full rows (bios, urls, phones)
+      // can blow past Vercel's 4.5MB body limit and 413.
+      const slimShareholders = currentRows.map(r => ({
+        insti_name: r.insti_name,
+        type: r.type,
+        total_holding: r.total_holding,
+        change_in_percentage: r.change_in_percentage,
+        ...(r.type === 'Fund' ? {
+          fund_name: r.fund_name,
+          person_names: r.person_names,
+          person_emails: r.person_emails,
+        } : {}),
+      }));
       const res = await fetch('/api/summarize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ entity: currentEntity, shareholders: currentRows, peerEntities: currentPeers.slice(0, 4), staleCutoff: cutoff }),
+        body: JSON.stringify({ entity: currentEntity, shareholders: slimShareholders, peerEntities: currentPeers.slice(0, 4), staleCutoff: cutoff }),
       });
       const data = await res.json();
       const html = data.html || `<p>${data.error || 'No summary generated.'}</p>`;
