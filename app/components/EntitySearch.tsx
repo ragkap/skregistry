@@ -10,6 +10,7 @@ interface Entity {
   country: string;
   sector: string;
   bloomberg_ticker: string;
+  slug?: string;
 }
 
 interface Props {

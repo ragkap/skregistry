@@ -50,6 +50,33 @@ interface ShareholderRow {
 
 const DISCLAIMER = `<p class="disclaimer"><em>This content is AI-generated and displayed for general informational purposes only. Please verify independently before use.</em></p>`;
 
+const LOADING_PHRASES = [
+  'Analysing shareholder registry…',
+  'Reviewing top institutional holders…',
+  'Comparing peer ownership patterns…',
+  'Identifying notable position changes…',
+  'Spotting institutions that own peers but not this company…',
+  'Surfacing fund manager contacts…',
+  'Cross-checking sector concentration…',
+  'Drafting IR opportunities…',
+  'Ranking outreach priorities…',
+  'Compiling recommended next steps…',
+  'Polishing the report…',
+];
+
+function RotatingLoader() {
+  const [idx, setIdx] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setIdx(i => (i + 1) % LOADING_PHRASES.length), 2200);
+    return () => clearInterval(t);
+  }, []);
+  return (
+    <span className="text-sm transition-opacity duration-300" style={{ color: 'var(--text-muted)' }} key={idx}>
+      {LOADING_PHRASES[idx]}
+    </span>
+  );
+}
+
 function useAISummary(entity: Entity | null, rows: ShareholderRow[], peers: Peer[], isViewingPeer: boolean, staleFilter: StaleFilter) {
   const [summarizing, setSummarizing] = useState(false);
   const [summaryHtml, setSummaryHtml] = useState('');
@@ -469,7 +496,7 @@ function PageContent() {
                   {summarizing ? (
                     <div className="flex items-center gap-3 py-6">
                       <div className="w-5 h-5 border-2 border-[#24a9a7] border-t-transparent rounded-full animate-spin flex-shrink-0" />
-                      <span className="text-sm" style={{ color: 'var(--text-muted)' }}>Analysing shareholders, peer comparison and IR opportunities…</span>
+                      <RotatingLoader />
                     </div>
                   ) : (
                     <div ref={panelRef} className="summary-html" dangerouslySetInnerHTML={{ __html: summaryHtml }} />

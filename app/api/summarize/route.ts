@@ -122,7 +122,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Build cache key from entity id + stale cutoff
-    const cacheKey = `summary:v2:${entity.id ?? 'unknown'}:${cutoff ?? 'all'}`;
+    const cacheKey = `summary:v4:${entity.id ?? 'unknown'}:${cutoff ?? 'all'}`;
     const cached = await redis.get<string>(cacheKey).catch(() => null);
     if (cached) return NextResponse.json({ html: cached });
 
@@ -131,21 +131,22 @@ export async function POST(request: NextRequest) {
     const country = entity?.country || 'N/A';
     const sector = entity?.sector || 'N/A';
 
+    const headerHtml = `<h2>Smartkarma Shareholder Registry Analysis</h2>
+<p><strong>${entityName}</strong>${ticker ? ` &nbsp;·&nbsp; <span style="font-family:monospace">${ticker}</span>` : ''} &nbsp;·&nbsp; ${country} &nbsp;·&nbsp; ${sector}</p>
+`;
+
     const prompt = `You are a senior Investor Relations analyst at Smartkarma. Produce a structured HTML report based on the shareholding data below.
 
 Return ONLY valid HTML (no markdown, no \`\`\`html fences) using this structure:
-- Use <h3> for section headings
-- Use <ul><li> for bullet points
-- Use <strong> for emphasis
-- Use <span class="positive"> for positive signals and <span class="negative"> for risks
-- Use <p> for paragraphs
+- Use h3 for section headings
+- Use ul/li for bullet points
+- Use strong for emphasis
+- Use span class="positive" for positive signals and span class="negative" for risks
+- Use p for paragraphs
 - Keep it concise — max 600 words total
+- Do NOT include any title, header, or company-info block — start directly with the first section heading
 
-Start the report with this exact header block:
-<p><strong>Smartkarma Shareholder Registry Analysis</strong></p>
-<p><strong>${entityName}</strong>${ticker ? ` &nbsp;·&nbsp; <span style="font-family:monospace">${ticker}</span>` : ''} &nbsp;·&nbsp; ${country} &nbsp;·&nbsp; ${sector}</p>
-
-Then include these sections:
+Include these sections:
 1. <h3>Ownership Overview</h3> — brief snapshot of ownership concentration and structure
 2. <h3>Notable Changes</h3> — who increased/decreased and what it signals
 3. <h3>Peer Comparison</h3> — which institutions own peers but not ${entityName}, and why that matters
@@ -170,8 +171,12 @@ ${JSON.stringify(peerOnlyHolders.slice(0, 15), null, 2)}`;
 
     const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
     const result = await model.generateContent(prompt);
-    const html = result.response.text()
+    const raw = result.response.text()
       .replace(/^```html\s*/i, '').replace(/```\s*$/, '').trim();
+    const firstH3 = raw.search(/<h3\b/i);
+    const reportBody = firstH3 > 0 ? raw.slice(firstH3).trim() : raw;
+
+    const html = headerHtml + reportBody;
 
     await redis.set(cacheKey, html, { ex: CACHE_TTL }).catch(() => {});
 

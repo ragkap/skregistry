@@ -153,7 +153,7 @@ function MiniTable({ icon, title, subtitle, filter, onFilter, headers, rows, emp
       {/* Table */}
       <table className="w-full sk-table" style={{ tableLayout: 'fixed' }}>
         <colgroup>
-          <col /> {/* name — takes remaining space */}
+          <col />
           <col style={{ width: 100 }} />
         </colgroup>
         <thead className="sk-thead">

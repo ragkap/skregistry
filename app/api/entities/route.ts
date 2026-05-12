@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
   if (id) {
     try {
       const result = await pool.query(
-        `SELECT e.id, e.pretty_name, e.short_name, e.country, e.sector, e.bloomberg_ticker
+        `SELECT e.id, e.pretty_name, e.short_name, e.country, e.sector, e.bloomberg_ticker, e.slug
          FROM entities e WHERE e.id = $1`,
         [parseInt(id)]
       );
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
   if (!q || q.length < 2) return NextResponse.json([]);
   try {
     const result = await pool.query(
-      `SELECT e.id, e.pretty_name, e.short_name, e.country, e.sector, e.bloomberg_ticker
+      `SELECT e.id, e.pretty_name, e.short_name, e.country, e.sector, e.bloomberg_ticker, e.slug
        FROM entities e
        WHERE e.pretty_name ILIKE $1 OR e.bloomberg_ticker ILIKE $1 OR e.short_name ILIKE $1
        LIMIT 20`,
